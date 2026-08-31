@@ -1,0 +1,29 @@
+# Root
+.DS_Store
+Thumbs.db
+
+# VS Code
+.vscode/
+
+# Node / Vue
+frontend-vue/node_modules/
+frontend-vue/dist/
+frontend-vue/.vite/
+
+# Java / Maven
+backend-java/target/
+backend-java/.idea/
+
+# Python
+analytics-python/__pycache__/
+analytics-python/.venv/
+analytics-python/venv/
+**/*.pyc
+**/__pycache__/
+
+# Environment files
+.env
+.env.*
+
+# OS
+.idea/
