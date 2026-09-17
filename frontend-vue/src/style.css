@@ -1,0 +1,19 @@
+@import "tailwindcss";
+
+@theme {
+  --color-black-color: #575756;
+  --color-black-light: #A5A5A5;
+  --color-black-regular: #707070;
+  --color-black-dark: #292930;
+  --color-regular: #637A84;
+  --color-blue-primary: #006EB7;
+  --color-blue-primary-hover: #03558c;
+  --color-blue-secondary: #CDDADF;
+  --color-orange: #FF8F00;
+  --color-green: #82CC12;
+  --color-pink: #701CD4;
+
+  --font-sans: "Inter", sans-serif;
+  --font-display: "Space Grotesk", sans-serif;
+  --font-mono: "IBM Plex Mono", monospace;
+}
