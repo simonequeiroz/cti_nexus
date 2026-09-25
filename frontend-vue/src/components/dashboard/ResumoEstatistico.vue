@@ -19,7 +19,9 @@
 
     <TabelaDados legenda="Estatísticas do faturamento anual por grupo" :colunas="COLUNAS">
       <tr v-for="linha in linhas" :key="linha.nome" :class="{ 'bg-surface font-semibold': linha.total }">
-        <th scope="row" class="px-4 py-3 pl-6 text-left font-medium whitespace-nowrap">{{ linha.nome }}</th>
+        <th scope="row" class="px-4 py-3 pl-6 text-left font-medium whitespace-nowrap">
+          <span class="inline-block w-2.5 h-2.5 rounded-full mr-2 align-middle" :style="{ backgroundColor: linha.cor }" aria-hidden="true"></span>{{ linha.nome }}
+        </th>
         <td class="px-4 py-3 text-right font-mono">{{ linha.quantidade }}</td>
         <td class="px-4 py-3 text-right font-mono whitespace-nowrap">{{ formatarMoeda(linha.media, true) }}</td>
         <td class="px-4 py-3 text-right font-mono whitespace-nowrap">{{ formatarMoeda(linha.mediana, true) }}</td>
@@ -27,8 +29,8 @@
         <td class="px-4 py-3 pr-6 min-w-48">
           <div class="relative h-5" :title="textoBoxplot(linha)">
             <span class="absolute top-1/2 h-px bg-black-light" :style="faixa(linha.minimo, linha.maximo)"></span>
-            <span class="absolute inset-y-0.5 rounded bg-blue-primary/20 border border-blue-primary" :style="faixa(linha.q1, linha.q3)"></span>
-            <span class="absolute inset-y-0 w-0.5 bg-blue-primary-hover" :style="{ left: posicao(linha.mediana) }"></span>
+            <span class="absolute inset-y-0.5 rounded border" :style="{ ...faixa(linha.q1, linha.q3), backgroundColor: `${linha.cor}33`, borderColor: linha.cor }"></span>
+            <span class="absolute inset-y-0 w-0.5" :style="{ left: posicao(linha.mediana), backgroundColor: linha.cor }"></span>
             <span class="sr-only">{{ textoBoxplot(linha) }}</span>
           </div>
         </td>
@@ -43,6 +45,7 @@ import CartaoPainel from '../ui/CartaoPainel.vue'
 import TabelaDados from '../ui/TabelaDados.vue'
 import { agruparPor, resumoEstatistico } from '../../utils/estatistica'
 import { formatarMoeda } from '../../utils/formatadores'
+import { corDoSegmento, CORES_NIVEL } from '../../constants/cores'
 
 const props = defineProps({
   clientes: { type: Array, required: true }
@@ -67,10 +70,14 @@ const agrupamento = ref('segmento') // Estado local: por qual campo agrupar.
 const linhas = computed(() => {
   const porNivel = agrupamento.value === 'nivel_cliente'
   const grupos = Object.entries(agruparPor(props.clientes, c => c[agrupamento.value]))
-    .map(([nome, grupo]) => ({ nome: porNivel ? `Nível ${nome}` : nome, ...resumoEstatistico(grupo.map(c => c.faturamento_anual)) }))
+    .map(([nome, grupo]) => ({
+      nome: porNivel ? `Nível ${nome}` : nome,
+      cor: porNivel ? CORES_NIVEL[nome] : corDoSegmento(nome), // Mesma cor do grupo nos gráficos.
+      ...resumoEstatistico(grupo.map(c => c.faturamento_anual))
+    }))
     .sort((a, b) => (porNivel ? a.nome.localeCompare(b.nome) : b.media - a.media))
 
-  const total = { nome: 'Carteira toda', total: true, ...resumoEstatistico(props.clientes.map(c => c.faturamento_anual)) }
+  const total = { nome: 'Carteira toda', total: true, cor: '#707070', ...resumoEstatistico(props.clientes.map(c => c.faturamento_anual)) }
   return [...grupos, total]
 })
 

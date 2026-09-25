@@ -8,6 +8,7 @@
         nome-serie="Clientes"
         descricao="Quantidade de clientes em cada segmento"
         :formatar-valor="comPercentual"
+        :cores="dados.map(d => corDoSegmento(d.rotulo))"
       />
     </div>
   </CartaoPainel>
@@ -18,6 +19,7 @@ import { computed } from 'vue'
 import CartaoPainel from '../ui/CartaoPainel.vue'
 import GraficoBase from './GraficoBase.vue'
 import { contarPor } from '../../utils/estatistica'
+import { corDoSegmento } from '../../constants/cores'
 
 const props = defineProps({
   clientes: { type: Array, required: true }

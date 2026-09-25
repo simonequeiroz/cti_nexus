@@ -1,6 +1,6 @@
 <!-- Dispersão: faturamento anual x quantidade de serviços contratados por cliente. -->
 <template>
-  <CartaoPainel titulo="Faturamento × nº de serviços" descricao="Cada ponto é um cliente. Clientes maiores contratam mais serviços?">
+  <CartaoPainel titulo="Faturamento × nº de serviços" descricao="Cada ponto é um cliente, na cor do seu segmento. Clientes maiores contratam mais serviços?">
     <div class="p-6">
       <GraficoBase
         tipo="dispersao"
@@ -12,6 +12,7 @@
         :formatar-valor="valor => formatarMoeda(valor, true)"
         :formatar-eixo="valor => formatarMoeda(valor, true)"
         :formatar-x="formatarServicos"
+        :cor-do-grupo="corDoSegmento"
       />
     </div>
   </CartaoPainel>
@@ -23,6 +24,7 @@ import CartaoPainel from '../ui/CartaoPainel.vue'
 import GraficoBase from './GraficoBase.vue'
 import { listaDeServicos } from '../../utils/dadosDashboard'
 import { formatarMoeda } from '../../utils/formatadores'
+import { corDoSegmento } from '../../constants/cores'
 
 const props = defineProps({
   clientes: { type: Array, required: true }
@@ -31,7 +33,8 @@ const props = defineProps({
 const dados = computed(() => props.clientes.map(c => ({
   rotulo: c.nome_cliente,
   x: listaDeServicos(c).length,
-  y: c.faturamento_anual
+  y: c.faturamento_anual,
+  grupo: c.segmento // Cada ponto na cor do seu segmento.
 })))
 
 function formatarServicos(valor) {
