@@ -1,6 +1,7 @@
 <!-- Tabela padrão: legenda para leitores de tela, cabeçalhos com scope e linhas pelo slot. -->
 <template>
-  <div class="overflow-x-auto">
+  <!-- relative: prende os textos sr-only dos cabeçalhos dentro da tabela (sem isso, no celular eles alargavam a página). -->
+  <div class="relative overflow-x-auto">
     <table class="w-full text-sm">
       <caption class="sr-only">{{ legenda }}</caption>
       <thead class="bg-blue-secondary/30 text-left text-xs font-mono uppercase tracking-wider text-regular">
