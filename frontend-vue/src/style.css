@@ -11,7 +11,13 @@
   --color-blue-secondary: #CDDADF;
   --color-orange: #FF8F00;
   --color-green: #82CC12;
+  --color-green-dark: #4D7A0B;
+  --color-orange-dark: #B36400;
   --color-pink: #701CD4;
+  --color-surface: #F8FAFC;
+  --color-surface-alt: #FAFCFE;
+
+  --shadow-glow: 0 0 10px #006EB7;
 
   --font-sans: "Inter", sans-serif;
   --font-display: "Space Grotesk", sans-serif;
