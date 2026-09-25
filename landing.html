@@ -40,18 +40,62 @@
   <!-- LUZ DE GLOW (Efeito de iluminação no fundo) -->
   <div class="absolute top-0 left-1/2 -translate-x-1/2 w-[900px] h-[450px] bg-gradient-to-b from-blue-primary/15 via-blue-primary/5 to-transparent blur-3xl pointer-events-none -z-10"></div>
 
-  <!-- MALHA DE FUNDO (Grid / Blueprint) -->
+  <!-- MALHA DE FUNDO 1: GRID ESTRUTURADO (Blueprint / Planilha) -->
   <div
-    class="absolute inset-0 -z-10 overflow-hidden pointer-events-none h-[1100px]"
+    class="absolute inset-0 -z-10 overflow-hidden pointer-events-none h-[1150px]"
     style="mask-image: radial-gradient(ellipse 85% 65% at 50% 0%, #000 65%, transparent 100%); -webkit-mask-image: radial-gradient(ellipse 85% 65% at 50% 0%, #000 65%, transparent 100%);"
   >
     <svg class="w-full h-full" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
       <defs>
         <pattern id="grid-pattern" width="40" height="40" patternUnits="userSpaceOnUse">
-          <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#006EB7" stroke-width="1.2" stroke-opacity="0.18" />
+          <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#006EB7" stroke-width="1.2" stroke-opacity="0.14" />
         </pattern>
       </defs>
       <rect width="100%" height="100%" fill="url(#grid-pattern)" />
+    </svg>
+  </div>
+
+  <!-- MALHA DE FUNDO 2: LINHAS FLUIDAS DE DADOS & NÓS (BI & ETL) -->
+  <div class="absolute top-0 left-0 w-full h-[1150px] overflow-hidden pointer-events-none -z-10">
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 1440 900"
+      preserveAspectRatio="xMidYMid slice"
+      class="w-full h-full"
+      aria-hidden="true"
+    >
+      <defs>
+        <linearGradient id="fluxoDados1" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#006EB7" stop-opacity="0.25" />
+          <stop offset="100%" stop-color="#00a3bf" stop-opacity="0.08" />
+        </linearGradient>
+        <linearGradient id="fluxoDados2" x1="100%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stop-color="#701CD4" stop-opacity="0.20" />
+          <stop offset="100%" stop-color="#006EB7" stop-opacity="0.05" />
+        </linearGradient>
+        <filter id="glow-node" x="-50%" y="-50%" width="200%" height="200%">
+          <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+          <feMerge>
+            <feMergeNode in="coloredBlur"/>
+            <feMergeNode in="SourceGraphic"/>
+          </feMerge>
+        </filter>
+      </defs>
+      
+      <!-- Linhas fluidas de dados (BI & ETL) -->
+      <path d="M-100,250 Q250,80 650,450 T1500,250" fill="none" stroke="url(#fluxoDados1)" stroke-width="2.5" />
+      <path d="M-50,500 Q450,280 850,650 T1600,350" fill="none" stroke="url(#fluxoDados2)" stroke-width="2" />
+      <path d="M100,150 Q550,650 950,200 T1400,750" fill="none" stroke="url(#fluxoDados1)" stroke-width="1.5" stroke-dasharray="6 4" />
+      
+      <!-- Nós de conexão com halos (Nexus Nodes) -->
+      <circle cx="450" cy="275" r="9" fill="#006EB7" opacity="0.15" />
+      <circle cx="450" cy="275" r="4.5" fill="#006EB7" opacity="0.75" filter="url(#glow-node)" />
+      
+      <circle cx="750" cy="510" r="11" fill="#00a3bf" opacity="0.15" />
+      <circle cx="750" cy="510" r="5" fill="#00a3bf" opacity="0.8" filter="url(#glow-node)" />
+      
+      <circle cx="1050" cy="310" r="8" fill="#701CD4" opacity="0.15" />
+      <circle cx="1050" cy="310" r="3.5" fill="#701CD4" opacity="0.65" filter="url(#glow-node)" />
     </svg>
   </div>
 
