@@ -1,18 +1,9 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import * as XLSX from 'xlsx'
-import {
-  texto,
-  normalizarUF,
-  normalizarNivel,
-  normalizarSegmento,
-  normalizarCabecalho,
-  normalizarCodigo,
-  normalizarNomePessoa,
-  normalizarMoeda,
-  normalizarServicos,
-  normalizarData
-} from '../utils/normalizacao'
+import { lerPlanilha, verificarArquivo, ExcelInvalidoError, ColunaObrigatoriaError } from '../utils/leituraPlanilha'
+import { validarLinhas } from '../utils/validacao'
+import { texto } from '../utils/normalizacao'
 
 export const useUploadStore = defineStore('upload', () => {
   // ===== STATE =====
@@ -21,6 +12,7 @@ export const useUploadStore = defineStore('upload', () => {
   const nomeArquivo = ref('') // Guarda o nome do arquivo.
   const dataUpload = ref(null) // Guarda a data e a hora do upload.
   const tamanhoArquivo = ref(0) // Guarda o tamanho do arquivo em bytes.
+  const abaLida = ref('') // Nome da aba usada (upload_clientes ou a primeira).
   const dadosBrutos = ref([]) // Guarda as linhas lidas diretamente da planilha.
   const dadosValidos = ref([]) // Guarda as linhas que passaram na validação.
   const dadosInvalidos = ref([]) // Guarda as linhas que apresentaram problemas.
@@ -30,6 +22,7 @@ export const useUploadStore = defineStore('upload', () => {
   const statusValidacao = ref('Aguardando arquivo') // Guarda o estado atual da validação.
   const carregando = ref(false) // Informa se o sistema está processando alguma etapa.
   const historico = ref([]) // Guarda o resumo de cada processamento feito nesta sessão.
+  const edicoesPendentes = ref(0) // Conta as correções feitas na tela de validação que ainda não foram revalidadas.
 
   // ===== GETTERS =====
 
@@ -87,161 +80,41 @@ export const useUploadStore = defineStore('upload', () => {
     erros.value = []
     ocorrencias.value = []
     padronizacoes.value = []
+    edicoesPendentes.value = 0
   }
 
-  function registrarArquivo(novoArquivo) { // Guarda as informações do arquivo escolhido.
+  function registrarArquivo(novoArquivo) { // Guarda as informações do arquivo escolhido (ou recusa se o formato/tamanho não servir).
     limparResultado()
-    arquivo.value = novoArquivo
     nomeArquivo.value = novoArquivo.name
     tamanhoArquivo.value = novoArquivo.size
     dataUpload.value = new Date()
+
+    const problema = verificarArquivo(novoArquivo)
+    if (problema) {
+      arquivo.value = null // Sem arquivo guardado, o botão Processar fica desabilitado.
+      statusValidacao.value = 'Arquivo recusado'
+      erros.value = [problema]
+      return
+    }
+
+    arquivo.value = novoArquivo
     statusValidacao.value = 'Arquivo selecionado'
   }
 
-  async function lerPlanilha() { // Lê a primeira aba e transforma cada linha em um objeto JavaScript.
-    const conteudo = await arquivo.value.arrayBuffer()
-    const planilha = XLSX.read(conteudo, { raw: true }) // raw: no CSV, não deixa 03/02/2025 virar data americana (2 de março).
-    const aba = planilha.Sheets[planilha.SheetNames[0]]
-    const linhas = XLSX.utils.sheet_to_json(aba, { defval: '' }) // defval mantém as células vazias.
-
-    dadosBrutos.value = linhas.map(linha => {
-      const linhaNormalizada = {}
-      for (const coluna in linha) {
-        linhaNormalizada[normalizarCabecalho(coluna)] = linha[coluna]
-      }
-      return linhaNormalizada
-    })
+  async function lerArquivo() { // Lê a aba upload_clientes (ou a primeira) e confere as colunas do dicionário.
+    const { linhas, nomeAba } = await lerPlanilha(arquivo.value)
+    dadosBrutos.value = linhas
+    abaLida.value = nomeAba
     statusValidacao.value = 'Dados lidos'
   }
 
-  function validarDados() { // Inicia a validação de todas as linhas.
-    dadosValidos.value = [] // Limpa os dados válidos anteriores.
-    dadosInvalidos.value = [] // Limpa os dados inválidos anteriores.
-    erros.value = [] // Limpa as mensagens de erro anteriores.
-    ocorrencias.value = [] // Limpa o detalhamento dos erros anteriores.
-    padronizacoes.value = [] // Limpa as padronizações anteriores.
-
-    const codigosEncontrados = new Set() // Guarda os códigos já encontrados.
-
-    dadosBrutos.value.forEach((linha, indice) => { // Percorre cada linha da planilha.
-      const problemas = [] // Cria uma lista de problemas para a linha atual.
-      const numeroLinha = indice + 2 // Soma 2 porque o Excel tem cabeçalho.
-
-      const codigo = normalizarCodigo(linha.codigo_cliente) // Lê o código em maiúsculo. Ex.: Cti004 vira CTI004.
-      const nome = texto(linha.nome_cliente) // Lê e limpa o nome.
-      const consultor = normalizarNomePessoa(linha.consultor) // Ex.: ANA SOUZA vira Ana Souza.
-      const segmento = normalizarSegmento(linha.segmento) // Padroniza o segmento.
-      const nivel = normalizarNivel(linha.nivel_cliente) // Padroniza o nível.
-      const servicos = normalizarServicos(linha.servicos_contratados) // Limpa a lista de serviços.
-      const dataContratacao = normalizarData(linha.data_contratacao) // dd/mm/aaaa, '' se vazia ou null se inválida.
-      const cidade = texto(linha.cidade) // Lê e limpa a cidade.
-      const uf = normalizarUF(linha.uf) // Padroniza a UF.
-      const faturamento = normalizarMoeda(linha.faturamento_anual) // Ex.: "R$ 1.850.000,00" vira 1850000.
-
-      function registrarProblema(campo, tipo, descricao) { // Guarda o problema com linha, campo e tipo.
-        problemas.push(descricao)
-        ocorrencias.value.push({ linha: numeroLinha, codigo_cliente: codigo || '(sem código)', campo, tipo, descricao })
-      }
-
-      function registrarPadronizacao(campo, antes, depois) { // Guarda o que foi corrigido automaticamente.
-        if (texto(antes) !== '' && String(antes) !== depois) {
-          padronizacoes.value.push({ linha: numeroLinha, campo, antes: String(antes), depois })
-        }
-      }
-
-      if (!codigo) {
-        registrarProblema('codigo_cliente', 'Campo vazio', 'Código do cliente está vazio') // Valida campo obrigatório.
-      }
-      if (!nome) {
-        registrarProblema('nome_cliente', 'Campo vazio', 'Nome do cliente está vazio') // Valida campo obrigatório.
-      }
-      if (!consultor) {
-        registrarProblema('consultor', 'Campo vazio', 'Consultor está vazio') // Valida campo obrigatório.
-      }
-      if (!segmento) {
-        registrarProblema('segmento', 'Campo vazio', 'Segmento está vazio') // Valida campo obrigatório.
-      }
-      if (!servicos) {
-        registrarProblema('servicos_contratados', 'Campo vazio', 'Serviços contratados está vazio') // Valida campo obrigatório.
-      }
-      if (!cidade) {
-        registrarProblema('cidade', 'Campo vazio', 'Cidade está vazia') // Valida campo obrigatório.
-      }
-      if (!uf) {
-        registrarProblema('uf', 'Campo vazio', 'UF está vazia') // Valida campo obrigatório.
-      }
-      if (dataContratacao === '') {
-        registrarProblema('data_contratacao', 'Campo vazio', 'Data de contratação está vazia') // Valida campo obrigatório.
-      } else if (dataContratacao === null) {
-        registrarProblema('data_contratacao', 'Valor inválido', 'Data de contratação deve estar no formato dd/mm/aaaa e existir no calendário') // Ex.: 31/02/2026.
-      }
-      if (!['A', 'B', 'C'].includes(nivel)) {
-        registrarProblema('nivel_cliente', 'Fora do padrão', 'Nível deve ser A, B ou C') // Valida os valores permitidos.
-      }
-
-      if (
-        faturamento === null ||
-        faturamento === undefined ||
-        faturamento === ''
-      ) {
-        registrarProblema('faturamento_anual', 'Campo vazio', 'Faturamento anual está vazio') // Verifica ausência de valor.
-      } else if (Number.isNaN(Number(faturamento))) {
-        registrarProblema('faturamento_anual', 'Valor inválido', 'Faturamento anual deve ser numérico') // Verifica se é número.
-      } else if (Number(faturamento) < 0) {
-        registrarProblema('faturamento_anual', 'Valor inválido', 'Faturamento anual não pode ser negativo') // Verifica valor negativo.
-      }
-
-      if (codigo && codigosEncontrados.has(codigo)) {
-        registrarProblema('codigo_cliente', 'Registro duplicado', 'Código do cliente duplicado') // Verifica código repetido.
-      }
-      if (codigo) {
-        codigosEncontrados.add(codigo) // Guarda o código para comparar com as próximas linhas.
-      }
-
-      registrarPadronizacao('nome_cliente', linha.nome_cliente, nome) // Ex.: espaços extras removidos.
-      registrarPadronizacao('consultor', linha.consultor, consultor)
-      registrarPadronizacao('segmento', linha.segmento, segmento) // Ex.: industria vira Indústria.
-      registrarPadronizacao('nivel_cliente', linha.nivel_cliente, nivel) // Ex.: a vira A.
-      registrarPadronizacao('codigo_cliente', linha.codigo_cliente, codigo) // Ex.: Cti004 vira CTI004.
-      registrarPadronizacao('servicos_contratados', linha.servicos_contratados, servicos)
-      registrarPadronizacao('cidade', linha.cidade, cidade)
-      registrarPadronizacao('uf', linha.uf, uf) // Ex.: sp vira SP.
-      if (dataContratacao) {
-        registrarPadronizacao('data_contratacao', linha.data_contratacao, dataContratacao) // Ex.: 5/3/2025 vira 05/03/2025.
-      }
-      if (typeof linha.faturamento_anual === 'string' && !Number.isNaN(faturamento)) {
-        registrarPadronizacao('faturamento_anual', linha.faturamento_anual, String(faturamento)) // Ex.: R$ 1.850.000,00 vira 1850000.
-      }
-
-      const linhaPadronizada = {
-        ...linha, // Copia os campos originais.
-        codigo_cliente: codigo, // Usa o código tratado.
-        nome_cliente: nome, // Usa o nome tratado.
-        consultor: consultor, // Usa o consultor tratado.
-        segmento: segmento, // Usa o segmento padronizado.
-        nivel_cliente: nivel, // Usa o nível padronizado.
-        servicos_contratados: servicos, // Usa a lista de serviços tratada.
-        data_contratacao: dataContratacao, // Usa a data padronizada.
-        cidade: cidade, // Usa a cidade tratada.
-        uf: uf, // Usa a UF padronizada.
-        faturamento_anual:
-          faturamento === '' ? null : Number(faturamento) // Converte o faturamento para número.
-      }
-
-      if (problemas.length === 0) {
-        dadosValidos.value.push(linhaPadronizada) // Coloca a linha na lista de válidos.
-      } else {
-        dadosInvalidos.value.push({
-          numeroLinha: numeroLinha, // Linha como aparece no Excel.
-          codigo_cliente: codigo || '(sem código)', // Identifica a linha.
-          problemas: problemas // Guarda todos os problemas encontrados.
-        })
-
-        erros.value.push(
-          `Linha ${numeroLinha}: ${problemas.join('; ')}`
-        ) // Cria uma mensagem pronta para mostrar ao usuário.
-      }
-    })
+  function validarDados() { // Aplica as regras de utils/validacao.js e guarda o resultado.
+    const resultado = validarLinhas(dadosBrutos.value)
+    dadosValidos.value = resultado.validos
+    dadosInvalidos.value = resultado.invalidos
+    ocorrencias.value = resultado.ocorrencias
+    padronizacoes.value = resultado.padronizacoes
+    erros.value = resultado.erros
 
     statusValidacao.value =
       dadosInvalidos.value.length === 0
@@ -271,15 +144,16 @@ export const useUploadStore = defineStore('upload', () => {
     statusValidacao.value = 'Processando'
 
     try {
-      await lerPlanilha()
+      await lerArquivo()
       validarDados()
       registrarHistorico(statusValidacao.value)
     } catch (erro) {
       limparResultado()
       statusValidacao.value = 'Erro na leitura'
-      erros.value = ['Não foi possível ler o arquivo. Verifique se é uma planilha .xlsx, .xls ou .csv.']
+      const conhecido = erro instanceof ExcelInvalidoError || erro instanceof ColunaObrigatoriaError
+      erros.value = [conhecido ? erro.message : 'Não foi possível ler o arquivo. Verifique se é uma planilha .xlsx, .xls ou .csv.']
       registrarHistorico('Erro na leitura')
-      console.error(erro)
+      if (!conhecido) console.error(erro) // Erros previstos (coluna faltando, aba vazia) já aparecem na tela.
     } finally {
       carregando.value = false
     }
@@ -291,6 +165,7 @@ export const useUploadStore = defineStore('upload', () => {
     nomeArquivo.value = ''
     dataUpload.value = null
     tamanhoArquivo.value = 0
+    abaLida.value = ''
     statusValidacao.value = 'Aguardando arquivo'
   }
 
@@ -298,14 +173,32 @@ export const useUploadStore = defineStore('upload', () => {
     historico.value = []
   }
 
+  function corrigirCampo(numeroLinha, campo, valor) { // Altera um valor da planilha lida (linha como aparece no Excel).
+    dadosBrutos.value[numeroLinha - 2][campo] = valor
+    edicoesPendentes.value++
+  }
+
+  function revalidar() { // Valida de novo com as correções. Devolve quantas linhas deixaram de ter erro.
+    const invalidasAntes = quantidadeInvalidas.value
+    validarDados()
+    edicoesPendentes.value = 0
+    return invalidasAntes - quantidadeInvalidas.value
+  }
+
+  function baixarPlanilhaCorrigida() { // Gera um .xlsx com as correções, na aba upload_clientes.
+    const pasta = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(pasta, XLSX.utils.json_to_sheet(dadosBrutos.value), 'upload_clientes')
+    XLSX.writeFile(pasta, `${nomeArquivo.value.replace(/\.[^.]+$/, '')}-corrigida.xlsx`)
+  }
+
   return {
-    arquivo, nomeArquivo, dataUpload, tamanhoArquivo,
+    arquivo, nomeArquivo, dataUpload, tamanhoArquivo, abaLida,
     dadosBrutos, dadosValidos, dadosInvalidos, erros, ocorrencias, padronizacoes,
-    statusValidacao, carregando, historico,
+    statusValidacao, carregando, historico, edicoesPendentes,
     quantidadeLinhas, quantidadeValidas, quantidadeInvalidas,
     quantidadeClientes, percentualValido, faturamentoTotal, faturamentoMedio,
     errosPorTipo, errosPorCampo, padronizacoesPorCampo,
-    registrarArquivo, lerPlanilha, validarDados, processarArquivo,
-    limparUpload, limparHistorico
+    registrarArquivo, lerArquivo, validarDados, processarArquivo,
+    limparUpload, limparHistorico, corrigirCampo, revalidar, baixarPlanilhaCorrigida
   }
 })

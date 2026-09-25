@@ -1,7 +1,7 @@
 // Funções auxiliares usadas pela validação da planilha.
 
 export function texto(valor) { // Cria uma função auxiliar para tratar textos.
-  return String(valor ?? '').trim() // Converte em texto e remove espaços extras.
+  return String(valor ?? '').trim().replace(/\s+/g, ' ') // Converte em texto e remove espaços extras (nas pontas e repetidos no meio).
 }
 
 export function normalizarUF(valor) { // Cria uma função para padronizar a UF.
@@ -43,16 +43,28 @@ export function normalizarCodigo(valor) { // Ex.: Cti004 vira CTI004.
 
 const PALAVRAS_MINUSCULAS = ['da', 'das', 'de', 'do', 'dos', 'e']
 
-export function normalizarNomePessoa(valor) { // Ex.: ANA SOUZA vira Ana Souza.
-  return texto(valor)
+function primeirasMaiusculas(valor) { // Ex.: "clínica de saúde" vira "Clínica de Saúde".
+  return valor
     .toLowerCase()
-    .split(/\s+/)
+    .split(' ')
     .map((palavra, indice) =>
       indice > 0 && PALAVRAS_MINUSCULAS.includes(palavra)
         ? palavra // "de", "da"... ficam minúsculas no meio do nome.
         : palavra.charAt(0).toUpperCase() + palavra.slice(1)
     )
     .join(' ')
+}
+
+export function normalizarNomePessoa(valor) { // Ex.: ANA SOUZA vira Ana Souza.
+  return primeirasMaiusculas(texto(valor))
+}
+
+// Nome de empresa ou cidade: só corrige o que está TODO em maiúsculas ou todo em minúsculas.
+// Assim "METALÚRGICA ALFA" vira "Metalúrgica Alfa", mas "Tech CTI Brasil" (já escrito certo) não perde a sigla.
+export function capitalizar(valor) {
+  const limpo = texto(valor)
+  const tudoIgual = limpo === limpo.toUpperCase() || limpo === limpo.toLowerCase()
+  return tudoIgual ? primeirasMaiusculas(limpo) : limpo
 }
 
 export function normalizarMoeda(valor) { // Ex.: "R$ 1.850.000,00" vira 1850000.
