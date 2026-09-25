@@ -3,7 +3,7 @@
   <figure class="p-8 bg-black-dark text-white">
     <figcaption class="text-[11px] font-mono tracking-wider uppercase text-black-light mb-4 font-semibold">Dashboard — depois do tratamento</figcaption>
 
-    <StatGrid :itens="INDICADORES" escuro class="grid-cols-2 mb-5 [&_dd]:text-lg" />
+    <GradeEstatisticas :itens="INDICADORES" escuro class="grid-cols-2 mb-5 [&_dd]:text-lg" />
 
     <figure class="flex items-center gap-5 bg-white/5 p-3.5 rounded-lg border border-white/10">
       <svg class="w-16 h-16 shrink-0" viewBox="0 0 36 36" role="img" aria-labelledby="legenda-segmentos">
@@ -24,7 +24,7 @@
 </template>
 
 <script setup>
-import StatGrid from '../ui/StatGrid.vue'
+import GradeEstatisticas from '../ui/GradeEstatisticas.vue'
 
 const INDICADORES = [
   { rotulo: 'Clientes', valor: '1.248' },

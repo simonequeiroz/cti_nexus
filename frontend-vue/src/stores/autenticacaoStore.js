@@ -18,7 +18,7 @@ function lerSessao() { // Recupera o usuário logado se a página for recarregad
   }
 }
 
-export const useAuthStore = defineStore('auth', () => {
+export const useAutenticacaoStore = defineStore('auth', () => {
   // ===== STATE =====
 
   const usuario = ref(lerSessao()) // Guarda o usuário logado (ou null).

@@ -1,7 +1,7 @@
 <!-- Cabeçalho da landing page: logo, links para as seções e acesso ao sistema. -->
 <template>
   <header class="max-w-7xl mx-auto px-6 py-6 flex items-center justify-between">
-    <BrandLogo />
+    <LogoMarca />
 
     <nav aria-label="Seções da página" class="hidden md:block">
       <ul class="flex gap-8 text-sm font-medium text-regular">
@@ -11,13 +11,13 @@
       </ul>
     </nav>
 
-    <BaseButton href="#login">Entrar no sistema</BaseButton>
+    <BotaoBase href="#login">Entrar no sistema</BotaoBase>
   </header>
 </template>
 
 <script setup>
-import BrandLogo from '../ui/BrandLogo.vue'
-import BaseButton from '../ui/BaseButton.vue'
+import LogoMarca from '../ui/LogoMarca.vue'
+import BotaoBase from '../ui/BotaoBase.vue'
 
 const LINKS = [
   { rotulo: 'Sobre', href: '#sobre' },

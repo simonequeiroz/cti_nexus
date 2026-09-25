@@ -1,8 +1,8 @@
 import { ref, onMounted, onUnmounted } from 'vue'
-import { useAuthStore } from '../stores/authStore'
+import { useAutenticacaoStore } from '../stores/autenticacaoStore'
 
-// Navegação simples pelo endereço (#login, #upload, #relatorio). O resto abre a landing page.
-const TELAS_PROTEGIDAS = ['#upload', '#relatorio'] // Só abrem para quem fez login.
+// Navegação simples pelo endereço (#login, #upload, #validacao, #relatorio, #dashboard). O resto abre a landing page.
+const TELAS_PROTEGIDAS = ['#upload', '#validacao', '#relatorio', '#dashboard'] // Só abrem para quem fez login.
 
 const rotaAtual = ref(window.location.hash) // Compartilhada por todos os componentes.
 
@@ -16,7 +16,7 @@ export function useRotas() {
 
 // Chamada uma única vez, no App.vue, para acompanhar as trocas de endereço.
 export function iniciarRotas() {
-  const auth = useAuthStore()
+  const auth = useAutenticacaoStore()
 
   function atualizarRota() {
     const rota = window.location.hash

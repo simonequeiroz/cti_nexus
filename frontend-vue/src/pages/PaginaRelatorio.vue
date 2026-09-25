@@ -1,42 +1,42 @@
 <!-- Tela de relatório: resultado completo da última validação. -->
 <template>
-  <SystemLayout>
-    <ReportEmptyState v-if="!store.quantidadeLinhas" />
+  <LayoutSistema>
+    <RelatorioVazio v-if="!store.quantidadeLinhas" />
 
     <template v-else>
-      <ReportHeader @exportar="exportarErros" @imprimir="imprimir" />
-      <ReportStatusBanner class="mt-8" />
+      <CabecalhoRelatorio @exportar="exportarErros" @imprimir="imprimir" />
+      <AvisoStatusRelatorio class="mt-8" />
 
       <section aria-labelledby="titulo-indicadores" class="mt-6">
         <h2 id="titulo-indicadores" class="sr-only">Indicadores da planilha</h2>
-        <StatGrid :itens="indicadores" class="grid-cols-2 md:grid-cols-3 xl:grid-cols-6" />
+        <GradeEstatisticas :itens="indicadores" class="grid-cols-2 md:grid-cols-3 xl:grid-cols-6" />
       </section>
 
-      <QualityBar class="mt-6" />
+      <BarraQualidade class="mt-6" />
 
       <div class="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <ErrorTypeSummary />
-        <ErrorsByField />
+        <ResumoTiposErro />
+        <ErrosPorCampo />
       </div>
 
-      <ErrorDetailsTable class="mt-6" />
-      <StandardizationTable v-model:ver-todas="verTodasPadronizacoes" class="mt-6" />
+      <TabelaDetalhesErros class="mt-6" />
+      <TabelaPadronizacao v-model:ver-todas="verTodasPadronizacoes" class="mt-6" />
     </template>
-  </SystemLayout>
+  </LayoutSistema>
 </template>
 
 <script setup>
 import { ref, computed, nextTick } from 'vue'
-import SystemLayout from '../components/layout/SystemLayout.vue'
-import StatGrid from '../components/ui/StatGrid.vue'
-import ReportEmptyState from '../components/report/ReportEmptyState.vue'
-import ReportHeader from '../components/report/ReportHeader.vue'
-import ReportStatusBanner from '../components/report/ReportStatusBanner.vue'
-import QualityBar from '../components/report/QualityBar.vue'
-import ErrorTypeSummary from '../components/report/ErrorTypeSummary.vue'
-import ErrorsByField from '../components/report/ErrorsByField.vue'
-import ErrorDetailsTable from '../components/report/ErrorDetailsTable.vue'
-import StandardizationTable from '../components/report/StandardizationTable.vue'
+import LayoutSistema from '../components/layout/LayoutSistema.vue'
+import GradeEstatisticas from '../components/ui/GradeEstatisticas.vue'
+import RelatorioVazio from '../components/relatorio/RelatorioVazio.vue'
+import CabecalhoRelatorio from '../components/relatorio/CabecalhoRelatorio.vue'
+import AvisoStatusRelatorio from '../components/relatorio/AvisoStatusRelatorio.vue'
+import BarraQualidade from '../components/relatorio/BarraQualidade.vue'
+import ResumoTiposErro from '../components/relatorio/ResumoTiposErro.vue'
+import ErrosPorCampo from '../components/relatorio/ErrosPorCampo.vue'
+import TabelaDetalhesErros from '../components/relatorio/TabelaDetalhesErros.vue'
+import TabelaPadronizacao from '../components/relatorio/TabelaPadronizacao.vue'
 import { useUploadStore } from '../stores/uploadStore'
 import { nomeDoCampo } from '../constants/validacao'
 import { formatarMoeda } from '../utils/formatadores'

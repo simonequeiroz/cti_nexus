@@ -4,7 +4,7 @@
     class="border border-blue-secondary/80 rounded-2xl overflow-hidden grid grid-cols-1 md:grid-cols-[1fr_60px_1fr] bg-white/90 backdrop-blur-md shadow-2xl"
     aria-label="Exemplo de uma planilha antes e depois do tratamento"
   >
-    <SpreadsheetPreview />
+    <PreviaPlanilha />
 
     <div class="hidden md:flex items-center justify-center bg-surface border-x border-blue-secondary/80" aria-hidden="true">
       <svg class="w-7 h-7 text-blue-primary" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
@@ -12,11 +12,11 @@
       </svg>
     </div>
 
-    <DashboardPreview />
+    <PreviaPainel />
   </figure>
 </template>
 
 <script setup>
-import SpreadsheetPreview from './SpreadsheetPreview.vue'
-import DashboardPreview from './DashboardPreview.vue'
+import PreviaPlanilha from './PreviaPlanilha.vue'
+import PreviaPainel from './PreviaPainel.vue'
 </script>

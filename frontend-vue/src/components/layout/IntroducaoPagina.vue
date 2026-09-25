@@ -1,7 +1,7 @@
 <!-- Abertura das telas internas: etiqueta da etapa, título principal (h1) e descrição. -->
 <template>
   <header>
-    <EyebrowLabel class="mb-3">{{ etapa }}</EyebrowLabel>
+    <RotuloSuperior class="mb-3">{{ etapa }}</RotuloSuperior>
     <h1 class="font-display font-bold text-3xl md:text-4xl tracking-tight">
       <slot name="titulo">{{ titulo }}</slot>
     </h1>
@@ -12,7 +12,7 @@
 </template>
 
 <script setup>
-import EyebrowLabel from '../ui/EyebrowLabel.vue'
+import RotuloSuperior from '../ui/RotuloSuperior.vue'
 
 defineProps({
   etapa: { type: String, required: true },

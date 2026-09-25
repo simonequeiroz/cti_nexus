@@ -1,9 +1,9 @@
 <!-- Formulário de login. Ao entrar com sucesso, leva para a tela de upload. -->
 <template>
   <form class="space-y-5" novalidate @submit.prevent="entrar">
-    <TextField v-model="email" rotulo="E-mail" type="email" autocomplete="username" placeholder="voce@empresa.com" />
+    <CampoTexto v-model="email" rotulo="E-mail" type="email" autocomplete="username" placeholder="voce@empresa.com" />
 
-    <TextField
+    <CampoTexto
       v-model="senha"
       rotulo="Senha"
       :type="mostrarSenha ? 'text' : 'password'"
@@ -20,15 +20,15 @@
           {{ mostrarSenha ? 'Ocultar' : 'Mostrar' }}
         </button>
       </template>
-    </TextField>
+    </CampoTexto>
 
     <p v-if="auth.erro" role="alert" class="text-sm text-orange-dark bg-orange/10 border border-orange/30 rounded-lg px-4 py-2.5 flex gap-2">
       <span aria-hidden="true">⚠</span> {{ auth.erro }}
     </p>
 
-    <BaseButton tipo="submit" tamanho="lg" class="w-full" :disabled="auth.carregando">
+    <BotaoBase tipo="submit" tamanho="lg" class="w-full" :disabled="auth.carregando">
       {{ auth.carregando ? 'Entrando…' : 'Entrar' }}
-    </BaseButton>
+    </BotaoBase>
   </form>
 
   <aside class="mt-8 border border-dashed border-blue-secondary rounded-lg p-4 text-xs text-regular" aria-labelledby="titulo-demo">
@@ -42,12 +42,12 @@
 
 <script setup>
 import { ref } from 'vue'
-import TextField from '../ui/TextField.vue'
-import BaseButton from '../ui/BaseButton.vue'
-import { useAuthStore } from '../../stores/authStore'
+import CampoTexto from '../ui/CampoTexto.vue'
+import BotaoBase from '../ui/BotaoBase.vue'
+import { useAutenticacaoStore } from '../../stores/autenticacaoStore'
 import { useRotas } from '../../composables/useRotas'
 
-const auth = useAuthStore()
+const auth = useAutenticacaoStore()
 const { irPara } = useRotas()
 
 const email = ref('')

@@ -5,11 +5,11 @@
       <h2 id="titulo-cta" class="font-display font-bold text-xl md:text-2xl max-w-lg leading-tight">
         Pare de gerenciar clientes na planilha. Comece a decidir com dado tratado.
       </h2>
-      <BaseButton href="#login" tamanho="lg" class="shadow-lg">Acessar sistema →</BaseButton>
+      <BotaoBase href="#login" tamanho="lg" class="shadow-lg">Acessar sistema →</BotaoBase>
     </div>
   </section>
 </template>
 
 <script setup>
-import BaseButton from '../ui/BaseButton.vue'
+import BotaoBase from '../ui/BotaoBase.vue'
 </script>

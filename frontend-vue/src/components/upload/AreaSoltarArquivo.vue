@@ -11,15 +11,17 @@
       <path stroke-linecap="round" stroke-linejoin="round" d="M12 16V4m0 0l-4 4m4-4l4 4M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2" />
     </svg>
     <span class="font-semibold text-sm">Arraste a planilha aqui</span>
-    <span class="text-xs text-regular mt-1">ou clique para escolher (.xlsx, .xls, .csv)</span>
+    <span class="text-xs text-regular mt-1">ou clique para escolher ({{ EXTENSOES_ACEITAS.join(', ') }})</span>
+    <span class="text-xs text-regular">até {{ TAMANHO_MAXIMO_MB }} MB e {{ LINHAS_MAXIMAS.toLocaleString('pt-BR') }} linhas</span>
 
     <!-- sr-only (e não hidden) para o campo continuar acessível pelo teclado. -->
-    <input type="file" accept=".xlsx,.xls,.csv" class="sr-only" @change="escolherArquivo" />
+    <input type="file" :accept="EXTENSOES_ACEITAS.join(',')" class="sr-only" @change="escolherArquivo" />
   </label>
 </template>
 
 <script setup>
 import { ref } from 'vue'
+import { EXTENSOES_ACEITAS, TAMANHO_MAXIMO_MB, LINHAS_MAXIMAS } from '../../constants/validacao'
 
 const emit = defineEmits(['selecionar'])
 

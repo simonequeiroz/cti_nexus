@@ -1,6 +1,6 @@
 <!-- Histórico dos arquivos processados nesta sessão, com os erros de cada um. -->
 <template>
-  <PanelCard titulo="Histórico de processamento" descricao="Fica guardado só nesta sessão (Pinia). Ao recarregar a página, o histórico é apagado.">
+  <CartaoPainel titulo="Histórico de processamento" descricao="Fica guardado só nesta sessão (Pinia). Ao recarregar a página, o histórico é apagado.">
     <template #acoes>
       <button
         v-if="store.historico.length"
@@ -12,7 +12,7 @@
       </button>
     </template>
 
-    <DataTable v-if="store.historico.length" legenda="Arquivos processados nesta sessão" :colunas="COLUNAS">
+    <TabelaDados v-if="store.historico.length" legenda="Arquivos processados nesta sessão" :colunas="COLUNAS">
       <template v-for="registro in store.historico" :key="registro.id">
         <tr>
           <td class="pl-6 pr-4 py-2.5 font-mono whitespace-nowrap">
@@ -24,7 +24,7 @@
           <td class="px-4 py-2.5 text-right font-mono text-green">{{ registro.validas }}</td>
           <td class="px-4 py-2.5 text-right font-mono" :class="{ 'text-orange': registro.invalidas }">{{ registro.invalidas }}</td>
           <td class="px-4 py-2.5 text-right font-mono">{{ registro.percentualValido }}%</td>
-          <td class="px-4 py-2.5"><BaseBadge :cor="corDoStatus(registro.status)">{{ registro.status }}</BaseBadge></td>
+          <td class="px-4 py-2.5"><EtiquetaBase :cor="corDoStatus(registro.status)">{{ registro.status }}</EtiquetaBase></td>
           <td class="px-4 py-2.5 text-right">
             <button
               v-if="registro.erros.length"
@@ -45,17 +45,17 @@
           </td>
         </tr>
       </template>
-    </DataTable>
-    <EmptyMessage v-else>Nenhum arquivo processado ainda.</EmptyMessage>
-  </PanelCard>
+    </TabelaDados>
+    <MensagemVazia v-else>Nenhum arquivo processado ainda.</MensagemVazia>
+  </CartaoPainel>
 </template>
 
 <script setup>
 import { ref } from 'vue'
-import PanelCard from '../ui/PanelCard.vue'
-import DataTable from '../ui/DataTable.vue'
-import BaseBadge from '../ui/BaseBadge.vue'
-import EmptyMessage from '../ui/EmptyMessage.vue'
+import CartaoPainel from '../ui/CartaoPainel.vue'
+import TabelaDados from '../ui/TabelaDados.vue'
+import EtiquetaBase from '../ui/EtiquetaBase.vue'
+import MensagemVazia from '../ui/MensagemVazia.vue'
 import { useUploadStore } from '../../stores/uploadStore'
 import { corDoStatus } from '../../constants/validacao'
 import { formatarData, formatarTamanho, dataISO } from '../../utils/formatadores'

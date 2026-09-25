@@ -11,10 +11,10 @@
     </svg>
     <div class="absolute -top-40 -left-40 w-[520px] h-[520px] bg-blue-primary/30 blur-3xl rounded-full pointer-events-none" aria-hidden="true"></div>
 
-    <BrandLogo claro class="relative" />
+    <LogoMarca claro class="relative" />
 
     <div class="relative">
-      <EyebrowLabel claro class="mb-4">Tratamento e análise de dados comerciais</EyebrowLabel>
+      <RotuloSuperior claro class="mb-4">Tratamento e análise de dados comerciais</RotuloSuperior>
       <p class="font-display font-bold text-4xl leading-[1.15] tracking-tight max-w-md">
         Do <del class="text-black-light decoration-orange decoration-4">Excel bagunçado</del> à decisão certa.
       </p>
@@ -32,8 +32,8 @@
 </template>
 
 <script setup>
-import BrandLogo from '../ui/BrandLogo.vue'
-import EyebrowLabel from '../ui/EyebrowLabel.vue'
+import LogoMarca from '../ui/LogoMarca.vue'
+import RotuloSuperior from '../ui/RotuloSuperior.vue'
 
 const PASSOS = [
   'Envie a planilha da carteira de clientes.',

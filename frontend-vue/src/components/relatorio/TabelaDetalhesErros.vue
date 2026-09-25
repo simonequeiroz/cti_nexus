@@ -1,6 +1,6 @@
 <!-- Todos os erros com linha, código, campo, tipo e descrição. Tem filtro por tipo e busca. -->
 <template>
-  <PanelCard titulo="Detalhamento dos erros" descricao="Linha da planilha, campo com problema e o que precisa ser corrigido.">
+  <CartaoPainel titulo="Detalhamento dos erros" descricao="Linha da planilha, campo com problema e o que precisa ser corrigido.">
     <template #acoes>
       <div role="search" class="print:hidden">
         <label for="busca-erros" class="sr-only">Buscar erros</label>
@@ -29,27 +29,27 @@
       </button>
     </fieldset>
 
-    <DataTable v-if="ocorrenciasFiltradas.length" legenda="Erros encontrados na planilha" :colunas="COLUNAS">
+    <TabelaDados v-if="ocorrenciasFiltradas.length" legenda="Erros encontrados na planilha" :colunas="COLUNAS">
       <tr v-for="(ocorrencia, i) in ocorrenciasFiltradas" :key="i">
         <th scope="row" class="pl-6 pr-4 py-2.5 font-mono font-semibold text-left">{{ ocorrencia.linha }}</th>
         <td class="px-4 py-2.5 font-mono whitespace-nowrap">{{ ocorrencia.codigo_cliente }}</td>
         <td class="px-4 py-2.5 whitespace-nowrap">{{ nomeDoCampo(ocorrencia.campo) }}</td>
-        <td class="px-4 py-2.5"><BaseBadge :cor="corDoTipo(ocorrencia.tipo)">{{ ocorrencia.tipo }}</BaseBadge></td>
+        <td class="px-4 py-2.5"><EtiquetaBase :cor="corDoTipo(ocorrencia.tipo)">{{ ocorrencia.tipo }}</EtiquetaBase></td>
         <td class="px-4 py-2.5">{{ ocorrencia.descricao }}</td>
       </tr>
-    </DataTable>
-    <EmptyMessage v-else>
+    </TabelaDados>
+    <MensagemVazia v-else>
       {{ store.ocorrencias.length ? 'Nenhum erro encontrado com esse filtro.' : 'Nenhum erro encontrado. A planilha está pronta para o ETL.' }}
-    </EmptyMessage>
-  </PanelCard>
+    </MensagemVazia>
+  </CartaoPainel>
 </template>
 
 <script setup>
 import { ref, computed } from 'vue'
-import PanelCard from '../ui/PanelCard.vue'
-import DataTable from '../ui/DataTable.vue'
-import BaseBadge from '../ui/BaseBadge.vue'
-import EmptyMessage from '../ui/EmptyMessage.vue'
+import CartaoPainel from '../ui/CartaoPainel.vue'
+import TabelaDados from '../ui/TabelaDados.vue'
+import EtiquetaBase from '../ui/EtiquetaBase.vue'
+import MensagemVazia from '../ui/MensagemVazia.vue'
 import { useUploadStore } from '../../stores/uploadStore'
 import { nomeDoCampo, corDoTipo } from '../../constants/validacao'
 
