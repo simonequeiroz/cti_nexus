@@ -5,11 +5,11 @@
       <RotuloSuperior class="mb-4">Tratamento e análise de dados comerciais</RotuloSuperior>
 
       <h1 id="titulo-hero" class="font-display font-bold text-4xl md:text-6xl leading-[1.1] tracking-tight max-w-3xl text-black-dark">
-        Do <del class="text-black-light decoration-orange decoration-4">Excel bagunçado</del> à decisão certa.
+        Do Cadastro <del class="text-black-light decoration-orange decoration-4">inconsistente</del> ao insight confiável.
       </h1>
 
       <p class="mt-5 text-base md:text-lg text-regular max-w-xl leading-relaxed">
-        Organize a carteira de clientes, padronize os dados e transforme planilhas manuais em insights estratégicos — sem digitação duplicada, sem "IND." e "Industria" convivendo na mesma coluna.
+        A carteira de clientes do provedor, padronizada e pronta para análise. Sem "IND." e "Industria" na mesma coluna, sem digitação duplicada.
       </p>
 
       <div class="flex gap-4 mt-8 flex-wrap">
@@ -20,6 +20,12 @@
           Ver como funciona
         </BotaoBase>
       </div>
+
+      <!-- Microcopy: orienta quem já tem acesso e quem está chegando agora. -->
+      <p class="mt-4 text-sm text-regular">
+        Já tem conta? <a href="#login" class="font-semibold text-blue-primary hover:underline focus-visible:outline-2 focus-visible:outline-blue-primary">Acesse</a>.
+        Novo por aqui? Use o <a href="#login" class="font-semibold text-blue-primary hover:underline focus-visible:outline-2 focus-visible:outline-blue-primary">acesso de demonstração</a> e importe sua primeira planilha em minutos.
+      </p>
 
       <PainelTransformacao class="mt-14" />
     </div>

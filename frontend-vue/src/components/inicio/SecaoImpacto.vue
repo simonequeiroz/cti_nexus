@@ -14,7 +14,8 @@
           "Qual segmento traz <mark class="text-green bg-green/10 px-2 py-0.5 rounded">mais retorno</mark> para a empresa?"
         </blockquote>
         <p class="mt-4 text-sm text-black-light leading-relaxed">
-          Hoje, essa pergunta não tem resposta rápida. O CTI Nexus existe pra mudar isso.
+          Sem uma base de dados confiável, responder essa pergunta pode exigir horas de trabalho manual.
+          O CTI Nexus organiza, padroniza e estrutura os dados comerciais para apoiar análises mais rápidas e consistentes.
         </p>
       </div>
     </div>
@@ -23,8 +24,8 @@
 
 <script setup>
 const PROBLEMAS = [
-  'Dados preenchidos manualmente, planilha por planilha',
-  'Erros de digitação e inconsistências entre colunas',
-  'Nenhuma análise automática ou cruzamento de dados'
+  'Cada planilha segue um padrão diferente',
+  'Cadastros inconsistentes comprometem indicadores e relatórios',
+  'Decisões são tomadas com base em dados difíceis de validar'
 ]
 </script>

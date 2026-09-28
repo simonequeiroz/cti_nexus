@@ -32,7 +32,9 @@
   </form>
 
   <aside class="mt-8 border border-dashed border-blue-secondary rounded-lg p-4 text-xs text-regular" aria-labelledby="titulo-demo">
-    <h2 id="titulo-demo" class="font-mono uppercase tracking-wider font-semibold text-blue-primary mb-2">Acesso de demonstração</h2>
+    <!-- Saída para quem chegou pela página inicial e ainda não tem acesso. -->
+    <h2 id="titulo-demo" class="text-sm font-semibold text-black-dark">Primeira vez aqui?</h2>
+    <p class="mt-1 mb-2">Use o acesso de demonstração para conhecer o sistema e enviar sua primeira planilha.</p>
     <p class="font-mono">admin@ctinexus.com · 123456</p>
     <button type="button" class="mt-2 font-semibold text-blue-primary hover:underline" @click="preencherDemo">
       Preencher automaticamente
