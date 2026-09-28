@@ -10,7 +10,7 @@
       <dd class="font-mono">{{ formatarTamanho(store.tamanhoArquivo) }}</dd>
     </div>
     <div class="flex justify-between gap-4 py-2.5">
-      <dt class="text-regular">Upload</dt>
+      <dt class="text-regular">Enviado em</dt>
       <dd class="font-mono"><time :datetime="dataISO(store.dataUpload)">{{ formatarData(store.dataUpload) }}</time></dd>
     </div>
   </dl>

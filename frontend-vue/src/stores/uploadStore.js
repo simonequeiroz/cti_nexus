@@ -118,8 +118,8 @@ export const useUploadStore = defineStore('upload', () => {
 
     statusValidacao.value =
       dadosInvalidos.value.length === 0
-        ? 'Arquivo válido'
-        : 'Arquivo possui inconsistências' // Atualiza o status final da validação.
+        ? 'Planilha aprovada'
+        : 'Há linhas para corrigir' // Atualiza o status final da validação.
   }
 
   function registrarHistorico(status) { // Guarda um resumo do processamento no topo do histórico.

@@ -22,16 +22,16 @@
 <script setup>
 const RECURSOS = [
   {
-    titulo: 'Upload automático',
+    titulo: 'Envio simples',
     descricao: 'Envie a planilha .xlsx ou .csv direto no sistema — sem preparar nada antes, sem formatar manualmente.'
   },
   {
-    titulo: 'Tratamento e padronização',
+    titulo: 'Correção automática',
     descricao: 'O sistema identifica e corrige inconsistências de segmento, nível e faturamento antes de qualquer análise.'
   },
   {
-    titulo: 'Dashboards e insights',
-    descricao: 'Gráficos interativos e recomendações estratégicas geradas a partir dos dados já limpos — prontos pra decisão.'
+    titulo: 'Painel e conclusões',
+    descricao: 'Gráficos interativos e recomendações geradas a partir dos dados já corrigidos — prontos para decidir.'
   }
 ]
 </script>

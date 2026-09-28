@@ -1,6 +1,6 @@
 <!-- Medidas de tendência central e dispersão do faturamento, por segmento ou por nível, com boxplot. -->
 <template>
-  <CartaoPainel titulo="Estatísticas do faturamento" descricao="Média, mediana e desvio padrão do faturamento anual. O boxplot mostra mínimo, quartis (Q1–Q3) e máximo.">
+  <CartaoPainel titulo="Estatísticas do faturamento" descricao="Mediana: o valor do meio. Desvio padrão: o quanto os clientes variam entre si (quanto maior, mais diferentes). Na barra, a linha vai do menor ao maior faturamento, a caixa marca a metade central dos clientes e o traço é a mediana.">
     <template #acoes>
       <div class="inline-flex self-start rounded-lg border border-blue-secondary p-0.5 text-sm" role="group" aria-label="Agrupar estatísticas por">
         <button

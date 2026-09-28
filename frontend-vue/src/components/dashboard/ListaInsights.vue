@@ -1,6 +1,6 @@
 <!-- Insights estratégicos gerados a partir dos dados (título, descrição, tipo e prioridade). -->
 <template>
-  <CartaoPainel titulo="Insights estratégicos" :descricao="`${insights.length} conclusões geradas automaticamente a partir dos clientes filtrados.`">
+  <CartaoPainel titulo="O que os dados mostram" :descricao="`${insights.length} conclusões geradas automaticamente a partir dos clientes filtrados.`">
     <ul class="divide-y divide-blue-secondary/50">
       <li v-for="insight in insights" :key="insight.titulo" class="px-6 py-4 flex gap-4">
         <span class="mt-2 w-2 h-2 shrink-0 rounded-full" :class="COR_DA_PRIORIDADE[insight.prioridade]" aria-hidden="true"></span>

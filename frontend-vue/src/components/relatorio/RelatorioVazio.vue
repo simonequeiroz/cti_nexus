@@ -8,7 +8,7 @@
     </div>
     <h1 class="font-display font-bold text-2xl">{{ titulo }}</h1>
     <p class="mt-2 text-sm text-regular">{{ texto }}</p>
-    <BotaoBase href="#upload" tamanho="lg" class="mt-6">Ir para o upload</BotaoBase>
+    <BotaoBase href="#upload" tamanho="lg" class="mt-6">Enviar planilha</BotaoBase>
   </section>
 </template>
 
@@ -17,6 +17,6 @@ import BotaoBase from '../ui/BotaoBase.vue'
 
 defineProps({
   titulo: { type: String, default: 'Nenhum relatório disponível' },
-  texto: { type: String, default: 'Envie e processe uma planilha na tela de upload para gerar o relatório de validação.' }
+  texto: { type: String, default: 'Envie e confira uma planilha na tela Enviar planilha para gerar o relatório.' }
 })
 </script>

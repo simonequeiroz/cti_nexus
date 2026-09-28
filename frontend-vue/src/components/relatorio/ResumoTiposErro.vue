@@ -1,6 +1,6 @@
 <!-- Tabela "Validação realizada | Quantidade", com uma barra para cada tipo de erro. -->
 <template>
-  <CartaoPainel titulo="Resumo da validação" descricao="Quantidade de problemas por tipo de erro.">
+  <CartaoPainel titulo="Resumo da conferência" descricao="Quantidade de problemas por tipo de erro.">
     <TabelaDados legenda="Quantidade de problemas por tipo de erro" :colunas="COLUNAS">
       <tr v-for="tipo in TIPOS_DE_ERRO" :key="tipo.nome">
         <th scope="row" class="pl-6 pr-4 py-3 font-normal text-left">
@@ -15,7 +15,7 @@
         </td>
       </tr>
       <tr class="bg-green/5">
-        <th scope="row" class="pl-6 pr-4 py-3 font-semibold text-left text-green-dark">Registros válidos</th>
+        <th scope="row" class="pl-6 pr-4 py-3 font-semibold text-left text-green-dark">Linhas aprovadas</th>
         <td class="px-6 py-3 text-right font-mono font-semibold text-green-dark">{{ store.quantidadeValidas }}</td>
       </tr>
     </TabelaDados>
@@ -31,7 +31,7 @@ import { useUploadStore } from '../../stores/uploadStore'
 import { TIPOS_DE_ERRO } from '../../constants/validacao'
 
 const COLUNAS = [
-  { rotulo: 'Validação realizada' },
+  { rotulo: 'O que foi conferido' },
   { rotulo: 'Quantidade', classe: 'text-right w-24 pr-6' }
 ]
 

@@ -25,7 +25,7 @@ describe('planilhas públicas', () => {
     expect(resultado.nomeAba).toBe('upload_clientes')
     expect(resultado.validos).toHaveLength(5)
     expect(resultado.invalidos).toHaveLength(10)
-    expect(new Set(resultado.ocorrencias.map(o => o.tipo))).toEqual(new Set(['Campo vazio', 'Fora do padrão', 'Registro duplicado', 'Valor inválido']))
+    expect(new Set(resultado.ocorrencias.map(o => o.tipo))).toEqual(new Set(['Campo vazio', 'Fora do padrão', 'Código repetido', 'Valor inválido']))
     expect(resultado.padronizacoes.length).toBeGreaterThan(20) // Segmentos, nomes, níveis, UF, faturamento...
   })
 })

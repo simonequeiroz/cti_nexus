@@ -68,12 +68,12 @@
           <span class="bg-green transition-all duration-700" :style="{ width: `${store.percentualValido}%` }"></span>
           <span class="flex-1 bg-orange" :class="{ hidden: !store.quantidadeInvalidas }"></span>
         </div>
-        <p v-if="!recolhida" class="mt-2 text-xs text-white/50">{{ store.quantidadeValidas }} de {{ store.quantidadeLinhas }} linhas prontas para o ETL</p>
+        <p v-if="!recolhida" class="mt-2 text-xs text-white/50">{{ store.quantidadeValidas }} de {{ store.quantidadeLinhas }} linhas prontas para análise</p>
       </section>
 
       <div class="mt-auto flex flex-col gap-3">
         <p v-if="store.historico.length && !recolhida" class="px-2 text-xs font-mono text-white/50">
-          {{ store.historico.length }} {{ store.historico.length === 1 ? 'processamento' : 'processamentos' }} nesta sessão
+          {{ store.historico.length }} {{ store.historico.length === 1 ? 'planilha enviada' : 'planilhas enviadas' }} nesta visita
         </p>
 
         <div class="flex items-center rounded-2xl bg-white/10 backdrop-blur-sm" :class="recolhida ? 'flex-col gap-2 p-2' : 'gap-3 p-2'">
@@ -142,7 +142,7 @@ const etapas = computed(() => {
     icone: 'validacao',
     link: '#validacao',
     estado: !temDados.value ? 'pendente' : invalidas ? 'alerta' : 'concluida',
-    detalhe: !temDados.value ? 'aguardando dados' : invalidas ? `${invalidas} ${invalidas === 1 ? 'linha' : 'linhas'} com erro` : '100% válido'
+    detalhe: !temDados.value ? 'aguardando dados' : invalidas ? `${invalidas} ${invalidas === 1 ? 'linha' : 'linhas'} com erro` : 'tudo certo'
   }
 
   const relatorio = {

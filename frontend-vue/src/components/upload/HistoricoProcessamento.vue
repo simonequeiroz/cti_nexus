@@ -1,6 +1,6 @@
 <!-- Histórico dos arquivos processados nesta sessão, com os erros de cada um. -->
 <template>
-  <CartaoPainel titulo="Histórico de processamento" descricao="Fica guardado só nesta sessão (Pinia). Ao recarregar a página, o histórico é apagado.">
+  <CartaoPainel titulo="Histórico de envios" descricao="Fica guardado até você recarregar ou fechar a página.">
     <template #acoes>
       <button
         v-if="store.historico.length"
@@ -12,7 +12,7 @@
       </button>
     </template>
 
-    <TabelaDados v-if="store.historico.length" legenda="Arquivos processados nesta sessão" :colunas="COLUNAS">
+    <TabelaDados v-if="store.historico.length" legenda="Planilhas enviadas nesta visita" :colunas="COLUNAS">
       <template v-for="registro in store.historico" :key="registro.id">
         <tr>
           <td class="pl-6 pr-4 py-2.5 font-mono whitespace-nowrap">
@@ -46,7 +46,7 @@
         </tr>
       </template>
     </TabelaDados>
-    <MensagemVazia v-else>Nenhum arquivo processado ainda.</MensagemVazia>
+    <MensagemVazia v-else>Nenhuma planilha enviada ainda.</MensagemVazia>
   </CartaoPainel>
 </template>
 
@@ -65,10 +65,10 @@ const COLUNAS = [
   { rotulo: 'Arquivo' },
   { rotulo: 'Tamanho', classe: 'text-right' },
   { rotulo: 'Linhas', classe: 'text-right' },
-  { rotulo: 'Válidas', classe: 'text-right' },
-  { rotulo: 'Inválidas', classe: 'text-right' },
-  { rotulo: '% válido', classe: 'text-right' },
-  { rotulo: 'Status' },
+  { rotulo: 'Aprovadas', classe: 'text-right' },
+  { rotulo: 'Com erro', classe: 'text-right' },
+  { rotulo: '% aprovado', classe: 'text-right' },
+  { rotulo: 'Situação' },
   { rotulo: 'Detalhes', oculto: true }
 ]
 

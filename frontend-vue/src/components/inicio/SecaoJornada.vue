@@ -23,9 +23,9 @@
 
 <script setup>
 const PASSOS = [
-  { titulo: 'Apresentação', descricao: 'Landing institucional do sistema.' },
-  { titulo: 'Login', descricao: 'Autenticação para funcionários autorizados.' },
-  { titulo: 'Upload', descricao: 'Envio e processamento da planilha.' },
-  { titulo: 'Dashboards', descricao: 'Análise visual, KPIs e insights detalhados.' }
+  { titulo: 'Apresentação', descricao: 'Página de apresentação do sistema.' },
+  { titulo: 'Entrar', descricao: 'Acesso para funcionários autorizados.' },
+  { titulo: 'Enviar', descricao: 'Envio e conferência da planilha.' },
+  { titulo: 'Painel', descricao: 'Gráficos, indicadores e conclusões.' }
 ]
 </script>

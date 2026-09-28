@@ -1,7 +1,7 @@
 <!-- Exemplo de dashboard depois do tratamento: indicadores e gráfico de segmentos. -->
 <template>
   <figure class="p-8 bg-black-dark text-white">
-    <figcaption class="text-[11px] font-mono tracking-wider uppercase text-black-light mb-4 font-semibold">Dashboard — depois do tratamento</figcaption>
+    <figcaption class="text-[11px] font-mono tracking-wider uppercase text-black-light mb-4 font-semibold">Painel — depois do tratamento</figcaption>
 
     <GradeEstatisticas :itens="INDICADORES" escuro class="grid-cols-2 mb-5 [&_dd]:text-lg" />
 

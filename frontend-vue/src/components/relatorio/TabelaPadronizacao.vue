@@ -1,6 +1,6 @@
 <!-- Valores corrigidos automaticamente (antes → depois). -->
 <template>
-  <CartaoPainel titulo="Padronizações aplicadas" descricao="Textos corrigidos automaticamente. Não impedem o envio da linha.">
+  <CartaoPainel titulo="Ajustes automáticos" descricao="Diferenças de escrita que o sistema corrigiu sozinho. Não impedem a linha de ser aprovada.">
     <template #acoes>
       <ul class="flex flex-wrap gap-2">
         <li v-for="item in store.padronizacoesPorCampo" :key="item.nome">
@@ -10,7 +10,7 @@
     </template>
 
     <template v-if="store.padronizacoes.length">
-      <TabelaDados legenda="Valores padronizados automaticamente" :colunas="COLUNAS">
+      <TabelaDados legenda="Valores ajustados automaticamente" :colunas="COLUNAS">
         <tr v-for="(item, i) in visiveis" :key="i">
           <th scope="row" class="pl-6 pr-4 py-2.5 font-mono font-semibold text-left">{{ item.linha }}</th>
           <td class="px-4 py-2.5 whitespace-nowrap">{{ nomeDoCampo(item.campo) }}</td>
@@ -30,7 +30,7 @@
         {{ verTodas ? 'Mostrar menos' : `Ver todas (${store.padronizacoes.length})` }}
       </button>
     </template>
-    <MensagemVazia v-else>Nenhum texto precisou ser padronizado.</MensagemVazia>
+    <MensagemVazia v-else>Nenhum texto precisou de ajuste.</MensagemVazia>
   </CartaoPainel>
 </template>
 

@@ -1,9 +1,9 @@
 <!-- Linhas que passaram na validação, já padronizadas, com paginação (a planilha pode ter até 20 mil linhas). -->
 <template>
-  <CartaoPainel titulo="Dados válidos (padronizados)">
+  <CartaoPainel titulo="Clientes aprovados" descricao="Já com os ajustes automáticos aplicados.">
     <template #acoes>
       <p v-if="store.quantidadeValidas" class="text-xs text-regular">
-        {{ store.quantidadeValidas.toLocaleString('pt-BR') }} {{ store.quantidadeValidas === 1 ? 'linha válida' : 'linhas válidas' }}
+        {{ store.quantidadeValidas.toLocaleString('pt-BR') }} {{ store.quantidadeValidas === 1 ? 'linha aprovada' : 'linhas aprovadas' }}
       </p>
     </template>
 
@@ -27,7 +27,7 @@
       :total="store.quantidadeValidas"
       rotulo="Paginação dos dados válidos"
     />
-    <MensagemVazia v-if="!store.quantidadeValidas">Nenhuma linha válida para mostrar.</MensagemVazia>
+    <MensagemVazia v-if="!store.quantidadeValidas">Nenhuma linha aprovada para mostrar.</MensagemVazia>
   </CartaoPainel>
 </template>
 

@@ -39,7 +39,7 @@
       </tr>
     </TabelaDados>
     <MensagemVazia v-else>
-      {{ store.ocorrencias.length ? 'Nenhum erro encontrado com esse filtro.' : 'Nenhum erro encontrado. A planilha está pronta para o ETL.' }}
+      {{ store.ocorrencias.length ? 'Nenhum erro encontrado com esse filtro.' : 'Nenhum erro encontrado. A planilha está pronta para a análise.' }}
     </MensagemVazia>
   </CartaoPainel>
 </template>

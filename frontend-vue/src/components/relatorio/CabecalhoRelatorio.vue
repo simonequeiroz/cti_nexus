@@ -1,9 +1,9 @@
 <!-- Abertura do relatório: nome do arquivo, data, tamanho e ações. -->
 <template>
   <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-6">
-    <IntroducaoPagina etapa="Etapa 2 — Relatório de validação" class="min-w-0">
+    <IntroducaoPagina etapa="Passo 3 de 4 — Relatório" class="min-w-0">
       <template #titulo>
-        <span class="sr-only">Relatório de validação do arquivo </span>
+        <span class="sr-only">Relatório da planilha </span>
         <span class="block truncate" :title="store.nomeArquivo">{{ store.nomeArquivo }}</span>
       </template>
       <p class="text-sm font-mono">
@@ -13,9 +13,9 @@
     </IntroducaoPagina>
 
     <div class="flex flex-wrap gap-3 print:hidden">
-      <BotaoBase variante="secundario" :disabled="!store.ocorrencias.length" @click="emit('exportar')">Exportar erros (CSV)</BotaoBase>
+      <BotaoBase variante="secundario" :disabled="!store.ocorrencias.length" @click="emit('exportar')">Baixar lista de erros</BotaoBase>
       <BotaoBase variante="secundario" @click="emit('imprimir')">Imprimir</BotaoBase>
-      <BotaoBase href="#upload">Nova validação</BotaoBase>
+      <BotaoBase href="#upload">Enviar outra planilha</BotaoBase>
     </div>
   </div>
 </template>

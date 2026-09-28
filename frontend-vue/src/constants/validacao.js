@@ -21,7 +21,7 @@ export const NIVEIS_VALIDOS = ['A', 'B', 'C']
 // Tipos de erro gerados por validarLinhas(), com as cores usadas em cada um.
 export const TIPOS_DE_ERRO = [
   { nome: 'Campo vazio', ponto: 'bg-orange', etiqueta: 'bg-orange/15 text-orange-dark' },
-  { nome: 'Registro duplicado', ponto: 'bg-pink', etiqueta: 'bg-pink/10 text-pink' },
+  { nome: 'Código repetido', ponto: 'bg-pink', etiqueta: 'bg-pink/10 text-pink' },
   { nome: 'Fora do padrão', ponto: 'bg-blue-primary', etiqueta: 'bg-blue-primary/10 text-blue-primary' },
   { nome: 'Valor inválido', ponto: 'bg-red-500', etiqueta: 'bg-red-100 text-red-700' }
 ]
@@ -52,8 +52,8 @@ export function corDoTipo(tipo) {
 
 // Cor da etiqueta de cada status da validação.
 const CORES_DO_STATUS = {
-  'Arquivo válido': 'bg-green/15 text-green-dark',
-  'Arquivo possui inconsistências': 'bg-orange/15 text-orange-dark',
+  'Planilha aprovada': 'bg-green/15 text-green-dark',
+  'Há linhas para corrigir': 'bg-orange/15 text-orange-dark',
   'Erro na leitura': 'bg-red-100 text-red-700',
   'Arquivo recusado': 'bg-red-100 text-red-700',
   'Aguardando arquivo': 'bg-blue-secondary/50 text-regular'

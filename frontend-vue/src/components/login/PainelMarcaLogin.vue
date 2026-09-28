@@ -37,7 +37,7 @@ import RotuloSuperior from '../ui/RotuloSuperior.vue'
 
 const PASSOS = [
   'Envie a planilha da carteira de clientes.',
-  'O sistema padroniza e aponta as inconsistências.',
-  'Os dados tratados viram indicadores e insights.'
+  'O sistema corrige a escrita e aponta o que falta.',
+  'Os dados corrigidos viram indicadores e conclusões.'
 ]
 </script>

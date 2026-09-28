@@ -91,7 +91,7 @@ export function validarLinhas(linhas) {
     }
 
     if (tratada.codigo_cliente && codigosEncontrados.has(tratada.codigo_cliente)) {
-      registrarProblema('codigo_cliente', 'Registro duplicado', 'Código do cliente duplicado')
+      registrarProblema('codigo_cliente', 'Código repetido', 'Código do cliente repetido em outra linha')
     }
     if (tratada.codigo_cliente) codigosEncontrados.add(tratada.codigo_cliente)
 

@@ -1,6 +1,6 @@
 <!-- Histograma: quantos clientes há em cada faixa de faturamento anual. -->
 <template>
-  <CartaoPainel titulo="Distribuição do faturamento" descricao="Histograma do faturamento anual dos clientes.">
+  <CartaoPainel titulo="Distribuição do faturamento" descricao="Quantos clientes há em cada faixa de faturamento anual.">
     <div class="p-6">
       <GraficoBase
         :dados="dados"

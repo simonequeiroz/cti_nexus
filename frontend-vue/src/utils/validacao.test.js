@@ -100,7 +100,7 @@ describe('regras do dicionário de dados', () => {
   it('aponta código duplicado a partir da segunda ocorrência', () => {
     const resultado = validarLinhas([linha(), linha({ nome_cliente: 'Outra Empresa' })])
     expect(resultado.validos).toHaveLength(1)
-    expect(resultado.erros).toEqual(['Linha 3: Código do cliente duplicado'])
+    expect(resultado.erros).toEqual(['Linha 3: Código do cliente repetido em outra linha'])
   })
 
   it('numera as linhas como no Excel (cabeçalho na linha 1)', () => {
