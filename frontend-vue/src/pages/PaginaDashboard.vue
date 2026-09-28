@@ -3,15 +3,15 @@
   <LayoutSistema>
     <RelatorioVazio
       v-if="!store.quantidadeValidas"
-      titulo="Nenhum dado para o dashboard"
-      texto="Envie e processe uma planilha com pelo menos uma linha válida para ver os gráficos e os insights."
+      titulo="Nenhum dado para o painel"
+      texto="Envie e confira uma planilha com pelo menos uma linha aprovada para ver os gráficos e as conclusões."
     />
 
     <template v-else>
       <div class="flex flex-col xl:flex-row xl:items-end xl:justify-between gap-6">
-        <IntroducaoPagina etapa="Etapa 3 — Insights" titulo="Dashboard da carteira">
+        <IntroducaoPagina etapa="Passo 4 de 4 — Dashboard" titulo="Painel da carteira">
           <p>
-            Análise dos {{ store.quantidadeValidas }} clientes válidos de <strong class="text-black-dark">{{ store.nomeArquivo }}</strong>.
+            Análise dos {{ store.quantidadeValidas }} clientes aprovados de <strong class="text-black-dark">{{ store.nomeArquivo }}</strong>.
             <template v-if="store.quantidadeInvalidas">
               {{ store.quantidadeInvalidas }} {{ store.quantidadeInvalidas === 1 ? 'linha com erro ficou' : 'linhas com erro ficaram' }} de fora
               (<a href="#relatorio" class="text-blue-primary font-medium hover:underline">ver relatório</a>).
@@ -49,6 +49,28 @@
 
         <ResumoEstatistico :clientes="clientes" class="mt-6" />
       </template>
+
+      <!-- Fim do fluxo: responde "o que faço agora?" em vez de terminar sem saída. -->
+      <section aria-labelledby="titulo-proximos-passos" class="mt-10 rounded-2xl bg-black-dark text-white px-6 py-6 md:px-8 flex flex-col md:flex-row md:items-center gap-5 print:hidden">
+        <div class="flex-1">
+          <h2 id="titulo-proximos-passos" class="font-display font-bold text-xl">O que fazer agora</h2>
+          <p class="mt-1 text-sm text-black-light">
+            <template v-if="store.quantidadeInvalidas">
+              Ainda {{ store.quantidadeInvalidas === 1 ? 'há 1 linha' : `há ${store.quantidadeInvalidas} linhas` }} fora do painel. Corrija para a análise ficar completa.
+            </template>
+            <template v-else>
+              Todos os clientes da planilha estão no painel. Guarde o relatório ou envie outra planilha.
+            </template>
+          </p>
+        </div>
+        <div class="flex flex-wrap gap-3">
+          <BotaoBase v-if="store.quantidadeInvalidas" href="#validacao">
+            Corrigir {{ store.quantidadeInvalidas }} {{ store.quantidadeInvalidas === 1 ? 'linha' : 'linhas' }} →
+          </BotaoBase>
+          <BotaoBase href="#relatorio" :variante="store.quantidadeInvalidas ? 'secundario' : 'primario'">Ver relatório</BotaoBase>
+          <BotaoBase href="#upload" variante="secundario">Enviar outra planilha</BotaoBase>
+        </div>
+      </section>
     </template>
   </LayoutSistema>
 </template>
@@ -68,6 +90,7 @@ import GraficoFaturamento from '../components/dashboard/GraficoFaturamento.vue'
 import GraficoDispersao from '../components/dashboard/GraficoDispersao.vue'
 import ResumoEstatistico from '../components/dashboard/ResumoEstatistico.vue'
 import ListaInsights from '../components/dashboard/ListaInsights.vue'
+import BotaoBase from '../components/ui/BotaoBase.vue'
 import { useUploadStore } from '../stores/uploadStore'
 import { soma, media, mediana, desvioPadrao } from '../utils/estatistica'
 import { listaDeServicos, gerarInsights } from '../utils/dadosDashboard'

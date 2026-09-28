@@ -3,13 +3,18 @@
   <LayoutSistema>
     <RelatorioVazio
       v-if="!store.quantidadeLinhas"
-      titulo="Nada para validar ainda"
-      texto="Envie e processe uma planilha na tela de upload para conferir e corrigir as linhas com erro."
+      titulo="Nada para corrigir ainda"
+      texto="Envie e confira uma planilha na tela Enviar planilha para ver e corrigir as linhas com erro."
     />
 
     <template v-else>
-      <IntroducaoPagina etapa="Etapa 2 — Validação" titulo="Conferência e correção">
-        <p>Corrija os valores direto nos campos destacados e clique em <strong class="text-black-dark">Revalidar</strong>. As correções valem nesta sessão; baixe a planilha corrigida para guardar.</p>
+      <IntroducaoPagina etapa="Passo 2 de 4 — Validação" titulo="Conferência e correção">
+        <p v-if="store.quantidadeInvalidas">
+          Encontramos <strong class="text-black-dark">{{ store.quantidadeInvalidas }} {{ store.quantidadeInvalidas === 1 ? 'linha' : 'linhas' }}</strong>
+          que o sistema não conseguiu resolver sozinho. Corrija os campos destacados e clique em <strong class="text-black-dark">Conferir de novo</strong>.
+          As correções valem enquanto a página estiver aberta; baixe a planilha corrigida para guardar.
+        </p>
+        <p v-else>Nenhuma linha precisa da sua ajuda. Abaixo estão os ajustes que o sistema fez sozinho.</p>
       </IntroducaoPagina>
 
       <!-- Barra de ações: fica presa no topo enquanto a lista rola. -->
@@ -25,7 +30,7 @@
         <div class="ml-auto flex flex-wrap gap-2">
           <BotaoBase variante="secundario" @click="store.baixarPlanilhaCorrigida()">Baixar planilha corrigida</BotaoBase>
           <BotaoBase :disabled="!store.edicoesPendentes" @click="revalidar">
-            Revalidar
+            Conferir de novo
             <span v-if="store.edicoesPendentes" class="rounded-full bg-white/20 px-1.5 text-xs">{{ store.edicoesPendentes }}</span>
           </BotaoBase>
         </div>
@@ -33,8 +38,8 @@
 
       <section v-if="!store.quantidadeInvalidas" class="mt-6 rounded-2xl border border-green/40 bg-green/10 p-6 text-center">
         <p class="font-display font-bold text-lg text-green-dark">Todas as linhas estão válidas</p>
-        <p class="mt-1 text-sm text-regular">A planilha está pronta para o ETL.</p>
-        <BotaoBase href="#dashboard" variante="contorno" class="mt-4">Ver dashboard →</BotaoBase>
+        <p class="mt-1 text-sm text-regular">A planilha está pronta para a análise.</p>
+        <BotaoBase href="#dashboard" variante="contorno" class="mt-4">Ver painel →</BotaoBase>
       </section>
 
       <template v-else>
@@ -133,6 +138,6 @@ function revalidar() {
   const restantes = store.quantidadeInvalidas
   mensagem.value = corrigidas > 0
     ? `${corrigidas} ${corrigidas === 1 ? 'linha corrigida' : 'linhas corrigidas'}.${restantes ? ` Faltam ${restantes}.` : ''}`
-    : 'Nenhuma linha nova ficou válida.'
+    : 'Nenhuma linha nova foi aprovada.'
 }
 </script>
