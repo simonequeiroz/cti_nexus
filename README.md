@@ -23,7 +23,7 @@ O CTI Nexus segue o caminho de um **ETL**:
 |---|---|---|
 | **E — Extrair** | Lê a planilha (.xlsx, .xls ou .csv) | ✅ Pronto (no navegador) |
 | **T — Transformar** | Padroniza, valida e permite corrigir linha a linha | ✅ Pronto (no navegador) |
-| **L — Carregar** | Grava os dados aprovados no banco | ⏳ Depende do back-end e do banco |
+| **L — Carregar** | Libera os dados aprovados para o painel e grava no banco | 🟡 A liberação já existe no front; falta gravar no banco |
 
 ---
 
@@ -31,7 +31,7 @@ O CTI Nexus segue o caminho de um **ETL**:
 
 | Parte | Tecnologia | Situação |
 |---|---|---|
-| Front-end | Vue 3, Vite, Tailwind CSS v4, Pinia, Chart.js, SheetJS | ✅ Funcional, com 47 testes automatizados |
+| Front-end | Vue 3, Vite, Tailwind CSS v4, Pinia, Chart.js, SheetJS | ✅ Funcional, com 57 testes automatizados |
 | Back-end | Java, Spring Boot, Spring Security + JWT | ⏳ Planejado |
 | Banco de dados | PostgreSQL (Neon) | ⏳ Planejado (modelo abaixo) |
 | Análise | Python, Pandas, Matplotlib | ⏳ Planejado |
@@ -68,7 +68,7 @@ Abra **http://localhost:5173** no navegador.
 
 ### Usuários de demonstração
 
-A senha de todos é `123456`. A tela de login tem um botão para preencher cada um.
+A senha de todos é `123456`. Na tela de login, o link **Usar acesso de demonstração** entra com cada um em um clique. Para esconder esse link (quando existir o back-end), configure `VITE_MOSTRAR_DEMO=false`.
 
 | E-mail | Nome | Papel |
 |---|---|---|
@@ -81,10 +81,11 @@ A senha de todos é `123456`. A tela de login tem um botão para preencher cada 
 1. Entre como **analista**.
 2. Na tela de envio, baixe a **Planilha de teste**. Ela tem 15 linhas com erros de propósito: 5 corretas e 10 com problema.
 3. Envie a planilha e clique em **Conferir planilha**.
-4. Clique em **Corrigir linhas**, ajuste os campos destacados e clique em **Conferir de novo**.
-5. Abra o **Relatório** e o **Dashboard**.
-6. Saia e entre como **gestor**: ele só vê o Relatório e o Dashboard, sem botões de alteração.
-7. Saia e entre como **administrador**: só ele vê a tela **Usuários**.
+4. Clique em **Corrigir linhas**, ajuste os campos destacados e clique em **Conferir de novo**. Cada alteração fica registrada (quem, quando, antes e depois).
+5. Clique em **Liberar para o painel**. Antes disso, o Dashboard fica esperando a liberação.
+6. Abra o **Relatório** e o **Dashboard**.
+7. Saia e entre como **gestor**: ele só vê o Relatório e o Dashboard, sem botões de alteração.
+8. Saia e entre como **administrador**: só ele vê a tela **Usuários**.
 
 ---
 
@@ -95,11 +96,11 @@ Cada tela tem uma função, para não repetir informação.
 | Tela | Endereço | Para que serve |
 |---|---|---|
 | Página inicial | `/` | Apresentação do sistema |
-| Login | `#login` | Entrada com e-mail e senha |
+| Login | `#login` | Entrada com e-mail e senha. "Esqueci minha senha" e "Não tem acesso?" orientam a falar com o administrador |
 | **Upload** (Passo 1) | `#upload` | Enviar a planilha, ver o resultado rápido, os clientes aprovados e o histórico de envios (quem enviou, quando e a situação) |
-| **Validação** (Passo 2) | `#validacao` | Único lugar para ver e corrigir os erros linha a linha. Também mostra os ajustes automáticos e baixa a planilha corrigida |
+| **Validação** (Passo 2) | `#validacao` | Único lugar para ver e corrigir os erros linha a linha, com registro de quem alterou o quê. Também mostra os ajustes automáticos, baixa a planilha corrigida e **libera os clientes aprovados para o painel** |
 | **Relatório** (Passo 3) | `#relatorio` | Documento de qualidade da planilha, para ler, imprimir ou exportar a lista de erros |
-| **Dashboard** (Passo 4) | `#dashboard` | Análise dos clientes aprovados, com filtros por segmento e nível |
+| **Dashboard** (Passo 4) | `#dashboard` | Análise dos clientes **liberados**, com os 3 principais destaques no topo e filtros por segmento e nível |
 | Usuários | `#usuarios` | Cadastro de usuários (só administrador) |
 
 ### Gráficos do Dashboard
@@ -162,7 +163,7 @@ O sistema lida com dados sensíveis de clientes e faturamento, então o acesso �
 |---|:-:|:-:|:-:|
 | Enviar planilhas | ✅ | ✅ | — |
 | Ver erros e corrigir linhas | ✅ | ✅ | — |
-| Aprovar a carga dos dados ¹ | ✅ | ✅ | — |
+| Liberar os clientes para o painel | ✅ | ✅ | — |
 | Ver relatório e dashboard | ✅ | ✅ | ✅ |
 | Limpar o histórico | ✅ | — | — |
 | Cadastrar usuários | ✅ | — | — |
@@ -269,7 +270,8 @@ Os testes são feitos com Vitest (`npm test` dentro de `frontend-vue`) e cobrem:
 - estatística: média, mediana, quartis e desvio padrão (com os mesmos resultados do Pandas);
 - as planilhas de modelo e de teste oferecidas na tela;
 - permissões de cada papel;
-- regras do cadastro de usuário.
+- regras do cadastro de usuário;
+- o fluxo completo com a planilha de teste: quem enviou, tempo da conferência, registro de alterações e liberação para o painel (inclusive que o gestor não pode liberar).
 
 ---
 
