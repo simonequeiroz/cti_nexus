@@ -1,12 +1,6 @@
 <!-- Linhas que passaram na validação, já padronizadas, com paginação (a planilha pode ter até 20 mil linhas). -->
 <template>
   <CartaoPainel titulo="Clientes aprovados" descricao="Já com os ajustes automáticos aplicados.">
-    <template #acoes>
-      <p v-if="store.quantidadeValidas" class="text-xs text-regular">
-        {{ store.quantidadeValidas.toLocaleString('pt-BR') }} {{ store.quantidadeValidas === 1 ? 'linha aprovada' : 'linhas aprovadas' }}
-      </p>
-    </template>
-
     <TabelaDados v-if="store.quantidadeValidas" legenda="Linhas válidas da planilha" :colunas="COLUNAS">
       <tr v-for="linha in visiveis" :key="linha.codigo_cliente">
         <th scope="row" class="pl-6 pr-4 py-2.5 font-mono font-normal text-left">{{ linha.codigo_cliente }}</th>

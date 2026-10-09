@@ -41,7 +41,7 @@
     <div class="mt-3 flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-regular">
       <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-sm bg-green" aria-hidden="true"></span>Aprovados ({{ store.quantidadeValidas }})</span>
       <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-sm bg-orange" aria-hidden="true"></span>Com erro ({{ store.quantidadeInvalidas }})</span>
-      <a v-if="!arquivoValido" href="#validacao" class="ml-auto text-sm font-semibold text-blue-primary hover:underline print:hidden">
+      <a v-if="!arquivoValido && auth.pode('corrigir_dados')" href="#validacao" class="ml-auto text-sm font-semibold text-blue-primary hover:underline print:hidden">
         Corrigir agora →
       </a>
     </div>
@@ -51,9 +51,11 @@
 <script setup>
 import { computed } from 'vue'
 import { useUploadStore } from '../../stores/uploadStore'
+import { useAutenticacaoStore } from '../../stores/autenticacaoStore'
 import { porcentagem } from '../../utils/formatadores'
 
 const store = useUploadStore()
+const auth = useAutenticacaoStore()
 
 const arquivoValido = computed(() => store.quantidadeInvalidas === 0)
 </script>

@@ -18,6 +18,16 @@ export const SEGMENTOS_VALIDOS = ['Indústria', 'Comércio', 'Serviços', 'Saúd
 
 export const NIVEIS_VALIDOS = ['A', 'B', 'C']
 
+// Resumo das regras de utils/validacao.js, mostrado na tela de upload. Mudou uma regra lá? Atualize aqui também.
+export const REGRAS_VERIFICADAS = [
+  'Colunas do modelo e campos obrigatórios',
+  'Código do cliente sem repetição',
+  `Segmento da lista e nível ${NIVEIS_VALIDOS.slice(0, -1).join(', ')} ou ${NIVEIS_VALIDOS.at(-1)}`,
+  'Faturamento numérico e não negativo',
+  'Data de contratação válida (dd/mm/aaaa)',
+  'Cidade e UF opcionais; UF com 2 letras'
+]
+
 // Tipos de erro gerados por validarLinhas(), com as cores usadas em cada um.
 export const TIPOS_DE_ERRO = [
   { nome: 'Campo vazio', ponto: 'bg-orange', etiqueta: 'bg-orange/15 text-orange-dark' },

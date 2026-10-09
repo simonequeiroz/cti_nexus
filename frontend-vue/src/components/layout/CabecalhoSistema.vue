@@ -7,7 +7,7 @@
 
       <nav aria-label="Menu do sistema" class="order-last w-full sm:order-0 sm:w-auto sm:mr-auto">
         <ul class="flex gap-1 text-sm font-medium">
-          <li v-for="item in MENU" :key="item.link" class="flex-1 sm:flex-none">
+          <li v-for="item in menu" :key="item.link" class="flex-1 sm:flex-none">
             <a
               :href="item.link"
               class="block px-1 sm:px-3 py-2 rounded-lg text-center whitespace-nowrap transition-colors"
@@ -21,7 +21,7 @@
       </nav>
 
       <div class="flex items-center gap-5 text-sm shrink-0">
-        <p class="hidden sm:block text-regular">Olá, <strong class="text-black-dark">{{ auth.primeiroNome }}</strong></p>
+        <p class="hidden sm:block text-regular">Olá, <strong class="text-black-dark">{{ auth.primeiroNome }}</strong> <span class="text-xs">({{ auth.nomeDoPapel }})</span></p>
         <span class="hidden sm:block">
           <BotaoBase variante="secundario" @click="sair">Sair</BotaoBase>
         </span>
@@ -43,20 +43,25 @@
 </template>
 
 <script setup>
+import { computed } from 'vue'
 import LogoMarca from '../ui/LogoMarca.vue'
 import BotaoBase from '../ui/BotaoBase.vue'
 import { useAutenticacaoStore } from '../../stores/autenticacaoStore'
 import { useRotas } from '../../composables/useRotas'
+import { PERMISSAO_DA_TELA } from '../../constants/permissoes'
 
 const MENU = [
   { rotulo: 'Upload', link: '#upload' },
   { rotulo: 'Validação', link: '#validacao' },
   { rotulo: 'Relatório', link: '#relatorio' },
-  { rotulo: 'Dashboard', link: '#dashboard' }
+  { rotulo: 'Dashboard', link: '#dashboard' },
+  { rotulo: 'Usuários', link: '#usuarios' }
 ]
 
 const auth = useAutenticacaoStore()
 const { rotaAtual, irPara } = useRotas()
+
+const menu = computed(() => MENU.filter(item => auth.pode(PERMISSAO_DA_TELA[item.link]))) // Só as telas que o papel pode abrir.
 
 function sair() {
   auth.logout()

@@ -76,6 +76,21 @@
           {{ store.historico.length }} {{ store.historico.length === 1 ? 'planilha enviada' : 'planilhas enviadas' }} nesta visita
         </p>
 
+        <!-- Administração fica fora da trilha do dado: não é uma etapa do processamento. -->
+        <a
+          v-if="auth.pode('gerenciar_usuarios')"
+          href="#usuarios"
+          class="flex items-center gap-3 rounded-2xl p-2 text-sm font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-blue-primary"
+          :class="[rotaAtual === '#usuarios' ? 'bg-white/10 text-white' : 'text-white/70 hover:bg-white/5 hover:text-white', { 'justify-center': recolhida }]"
+          :aria-current="rotaAtual === '#usuarios' ? 'page' : undefined"
+          :title="recolhida ? 'Usuários' : undefined"
+        >
+          <svg class="w-5 h-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
+          </svg>
+          <span :class="{ 'sr-only': recolhida }">Usuários</span>
+        </a>
+
         <div class="flex items-center rounded-2xl bg-white/10 backdrop-blur-sm" :class="recolhida ? 'flex-col gap-2 p-2' : 'gap-3 p-2'">
           <span
             class="grid place-items-center w-10 h-10 shrink-0 rounded-full bg-linear-to-br from-blue-primary to-pink font-display font-bold"
@@ -86,7 +101,7 @@
           </span>
           <span v-if="!recolhida" class="min-w-0">
             <span class="block text-sm font-semibold truncate">{{ auth.usuario?.nome }}</span>
-            <span class="block text-xs text-white/50 truncate">{{ auth.usuario?.email }}</span>
+            <span class="block text-xs text-white/50 truncate" :title="auth.usuario?.email">{{ auth.nomeDoPapel }}</span>
           </span>
           <button
             type="button"
@@ -115,6 +130,7 @@ import { useAutenticacaoStore } from '../../stores/autenticacaoStore'
 import { useUploadStore } from '../../stores/uploadStore'
 import { useRotas } from '../../composables/useRotas'
 import { useMenuLateral } from '../../composables/useMenuLateral'
+import { PERMISSAO_DA_TELA } from '../../constants/permissoes'
 
 const auth = useAutenticacaoStore()
 const store = useUploadStore()
@@ -126,7 +142,7 @@ const temDados = computed(() => store.quantidadeLinhas > 0) // O dado já saiu d
 // Estado de cada etapa calculado a partir da última planilha processada.
 const etapas = computed(() => {
   const recusado = store.statusValidacao === 'Arquivo recusado'
-  const erroLeitura = recusado || store.statusValidacao === 'Erro na leitura'
+  const erroLeitura = store.falhouLeitura
   const invalidas = store.quantidadeInvalidas
 
   const upload = {
@@ -162,7 +178,10 @@ const etapas = computed(() => {
     detalhe: validas ? `${validas} ${validas === 1 ? 'cliente' : 'clientes'}` : 'aguardando dados'
   }
 
-  return [upload, validacao, relatorio, dashboard]
+  // Etapa que o papel não pode abrir: continua na trilha (o dado passa por ela), mas sem link.
+  return [upload, validacao, relatorio, dashboard].map(etapa => auth.pode(PERMISSAO_DA_TELA[etapa.link])
+    ? etapa
+    : { ...etapa, link: null, detalhe: 'sem acesso' })
 })
 
 const etapasConcluidas = computed(() => etapas.value.filter(e => ['concluida', 'alerta'].includes(e.estado)).length)

@@ -4,15 +4,17 @@ import * as XLSX from 'xlsx'
 import { lerPlanilha, verificarArquivo, ExcelInvalidoError, ColunaObrigatoriaError } from '../utils/leituraPlanilha'
 import { validarLinhas } from '../utils/validacao'
 import { texto } from '../utils/normalizacao'
+import { contarPor } from '../utils/estatistica'
+import { useAutenticacaoStore } from './autenticacaoStore'
 
 export const useUploadStore = defineStore('upload', () => {
   // ===== STATE =====
 
   const arquivo = ref(null) // Guarda temporariamente o arquivo selecionado.
   const nomeArquivo = ref('') // Guarda o nome do arquivo.
-  const dataUpload = ref(null) // Guarda a data e a hora do upload.
+  const dataUpload = ref(null) // Guarda a data e a hora em que a planilha foi conferida.
+  const enviadoPor = ref(null) // Quem conferiu a planilha: { id, nome }. O id é o que vai para o banco (importacao.enviado_por).
   const tamanhoArquivo = ref(0) // Guarda o tamanho do arquivo em bytes.
-  const abaLida = ref('') // Nome da aba usada (upload_clientes ou a primeira).
   const dadosBrutos = ref([]) // Guarda as linhas lidas diretamente da planilha.
   const dadosValidos = ref([]) // Guarda as linhas que passaram na validação.
   const dadosInvalidos = ref([]) // Guarda as linhas que apresentaram problemas.
@@ -22,6 +24,7 @@ export const useUploadStore = defineStore('upload', () => {
   const statusValidacao = ref('Aguardando arquivo') // Guarda o estado atual da validação.
   const carregando = ref(false) // Informa se o sistema está processando alguma etapa.
   const historico = ref([]) // Guarda o resumo de cada processamento feito nesta sessão.
+  const idHistoricoAtual = ref(null) // Registro do histórico da planilha aberta agora (atualizado ao revalidar).
   const edicoesPendentes = ref(0) // Conta as correções feitas na tela de validação que ainda não foram revalidadas.
 
   // ===== GETTERS =====
@@ -55,21 +58,14 @@ export const useUploadStore = defineStore('upload', () => {
     return faturamentoTotal.value / quantidadeValidas.value // Média por cliente válido.
   })
 
-  function contarPor(lista, chave) { // Agrupa uma lista e conta quantos itens há em cada grupo.
-    const contagem = {}
-    for (const item of lista) {
-      contagem[item[chave]] = (contagem[item[chave]] || 0) + 1
-    }
-    return Object.entries(contagem)
-      .map(([nome, quantidade]) => ({ nome, quantidade }))
-      .sort((a, b) => b.quantidade - a.quantidade) // Do mais frequente para o menos frequente.
-  }
+  const errosPorTipo = computed(() => contarPor(ocorrencias.value, item => item.tipo)) // Ex.: Campo vazio: 3.
 
-  const errosPorTipo = computed(() => contarPor(ocorrencias.value, 'tipo')) // Ex.: Campo vazio: 3.
+  const errosPorCampo = computed(() => contarPor(ocorrencias.value, item => item.campo)) // Ex.: uf: 2.
 
-  const errosPorCampo = computed(() => contarPor(ocorrencias.value, 'campo')) // Ex.: uf: 2.
+  const padronizacoesPorCampo = computed(() => contarPor(padronizacoes.value, item => item.campo)) // Ex.: segmento: 5.
 
-  const padronizacoesPorCampo = computed(() => contarPor(padronizacoes.value, 'campo')) // Ex.: segmento: 5.
+  // O arquivo foi recusado (formato/tamanho) ou não pôde ser lido (colunas faltando, aba vazia).
+  const falhouLeitura = computed(() => ['Arquivo recusado', 'Erro na leitura'].includes(statusValidacao.value))
 
   // ===== ACTIONS =====
 
@@ -81,17 +77,19 @@ export const useUploadStore = defineStore('upload', () => {
     ocorrencias.value = []
     padronizacoes.value = []
     edicoesPendentes.value = 0
+    idHistoricoAtual.value = null // O registro antigo do histórico deixa de ser a planilha aberta.
   }
 
   function registrarArquivo(novoArquivo) { // Guarda as informações do arquivo escolhido (ou recusa se o formato/tamanho não servir).
     limparResultado()
     nomeArquivo.value = novoArquivo.name
     tamanhoArquivo.value = novoArquivo.size
-    dataUpload.value = new Date()
+    dataUpload.value = null // Só ganha data (e autor) quando a planilha for conferida.
+    enviadoPor.value = null
 
     const problema = verificarArquivo(novoArquivo)
     if (problema) {
-      arquivo.value = null // Sem arquivo guardado, o botão Processar fica desabilitado.
+      arquivo.value = null // Sem arquivo guardado, o botão Conferir planilha fica desabilitado.
       statusValidacao.value = 'Arquivo recusado'
       erros.value = [problema]
       return
@@ -102,10 +100,8 @@ export const useUploadStore = defineStore('upload', () => {
   }
 
   async function lerArquivo() { // Lê a aba upload_clientes (ou a primeira) e confere as colunas do dicionário.
-    const { linhas, nomeAba } = await lerPlanilha(arquivo.value)
+    const { linhas } = await lerPlanilha(arquivo.value)
     dadosBrutos.value = linhas
-    abaLida.value = nomeAba
-    statusValidacao.value = 'Dados lidos'
   }
 
   function validarDados() { // Aplica as regras de utils/validacao.js e guarda o resultado.
@@ -122,37 +118,54 @@ export const useUploadStore = defineStore('upload', () => {
         : 'Há linhas para corrigir' // Atualiza o status final da validação.
   }
 
-  function registrarHistorico(status) { // Guarda um resumo do processamento no topo do histórico.
-    historico.value.unshift({
-      id: Date.now(),
-      nomeArquivo: nomeArquivo.value,
-      tamanhoArquivo: tamanhoArquivo.value,
-      dataProcessamento: new Date(),
+  function resumoAtual() { // Números da planilha aberta, no formato do histórico.
+    return {
       totalLinhas: quantidadeLinhas.value,
       validas: quantidadeValidas.value,
       invalidas: quantidadeInvalidas.value,
       percentualValido: percentualValido.value,
-      status: status,
-      erros: [...erros.value]
-    })
+      status: statusValidacao.value
+    }
+  }
+
+  function registrarHistorico() { // Guarda um resumo do processamento no topo do histórico.
+    const registro = {
+      id: Date.now(),
+      nomeArquivo: nomeArquivo.value,
+      tamanhoArquivo: tamanhoArquivo.value,
+      dataProcessamento: dataUpload.value,
+      enviadoPor: enviadoPor.value,
+      ...resumoAtual(),
+      motivo: falhouLeitura.value ? erros.value[0] : '' // Por que a leitura falhou (os erros linha a linha ficam na Validação).
+    }
+    historico.value.unshift(registro)
+    idHistoricoAtual.value = registro.id
+  }
+
+  function atualizarHistorico() { // Depois de revalidar, o registro da planilha aberta mostra os números novos.
+    const registro = historico.value.find(item => item.id === idHistoricoAtual.value)
+    if (registro) Object.assign(registro, resumoAtual())
   }
 
   async function processarArquivo() { // Executa a leitura e a validação, nessa ordem.
     if (!arquivo.value) return
 
     carregando.value = true
-    statusValidacao.value = 'Processando'
+    statusValidacao.value = 'Conferindo'
+    dataUpload.value = new Date()
+    const usuario = useAutenticacaoStore().usuario
+    enviadoPor.value = usuario ? { id: usuario.id, nome: usuario.nome } : null // Trilha de auditoria: quem enviou e quando.
 
     try {
       await lerArquivo()
       validarDados()
-      registrarHistorico(statusValidacao.value)
+      registrarHistorico()
     } catch (erro) {
       limparResultado()
       statusValidacao.value = 'Erro na leitura'
       const conhecido = erro instanceof ExcelInvalidoError || erro instanceof ColunaObrigatoriaError
       erros.value = [conhecido ? erro.message : 'Não foi possível ler o arquivo. Verifique se é uma planilha .xlsx, .xls ou .csv.']
-      registrarHistorico('Erro na leitura')
+      registrarHistorico()
       if (!conhecido) console.error(erro) // Erros previstos (coluna faltando, aba vazia) já aparecem na tela.
     } finally {
       carregando.value = false
@@ -164,13 +177,14 @@ export const useUploadStore = defineStore('upload', () => {
     arquivo.value = null
     nomeArquivo.value = ''
     dataUpload.value = null
+    enviadoPor.value = null
     tamanhoArquivo.value = 0
-    abaLida.value = ''
     statusValidacao.value = 'Aguardando arquivo'
   }
 
   function limparHistorico() { // Apaga todos os registros do histórico.
     historico.value = []
+    idHistoricoAtual.value = null
   }
 
   function corrigirCampo(numeroLinha, campo, valor) { // Altera um valor da planilha lida (linha como aparece no Excel).
@@ -181,6 +195,7 @@ export const useUploadStore = defineStore('upload', () => {
   function revalidar() { // Valida de novo com as correções. Devolve quantas linhas deixaram de ter erro.
     const invalidasAntes = quantidadeInvalidas.value
     validarDados()
+    atualizarHistorico()
     edicoesPendentes.value = 0
     return invalidasAntes - quantidadeInvalidas.value
   }
@@ -192,13 +207,13 @@ export const useUploadStore = defineStore('upload', () => {
   }
 
   return {
-    arquivo, nomeArquivo, dataUpload, tamanhoArquivo, abaLida,
+    arquivo, nomeArquivo, dataUpload, enviadoPor, tamanhoArquivo,
     dadosBrutos, dadosValidos, dadosInvalidos, erros, ocorrencias, padronizacoes,
-    statusValidacao, carregando, historico, edicoesPendentes,
+    statusValidacao, carregando, historico, idHistoricoAtual, edicoesPendentes,
     quantidadeLinhas, quantidadeValidas, quantidadeInvalidas,
     quantidadeClientes, percentualValido, faturamentoTotal, faturamentoMedio,
-    errosPorTipo, errosPorCampo, padronizacoesPorCampo,
-    registrarArquivo, lerArquivo, validarDados, processarArquivo,
+    errosPorTipo, errosPorCampo, padronizacoesPorCampo, falhouLeitura,
+    registrarArquivo, processarArquivo,
     limparUpload, limparHistorico, corrigirCampo, revalidar, baixarPlanilhaCorrigida
   }
 })

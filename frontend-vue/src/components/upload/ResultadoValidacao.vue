@@ -55,7 +55,7 @@
     <footer class="lg:mt-auto border-t border-blue-secondary/60 bg-surface/60 px-6 py-4">
       <h3 class="text-xs font-mono uppercase tracking-wider text-regular">O que é verificado</h3>
       <ul class="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 text-sm">
-        <li v-for="regra in REGRAS" :key="regra" class="flex gap-2">
+        <li v-for="regra in REGRAS_VERIFICADAS" :key="regra" class="flex gap-2">
           <svg class="w-4 h-4 mt-0.5 shrink-0 text-blue-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M5 13l4 4L19 7" />
           </svg>
@@ -71,25 +71,15 @@ import { computed } from 'vue'
 import CartaoPainel from '../ui/CartaoPainel.vue'
 import BotaoBase from '../ui/BotaoBase.vue'
 import { useUploadStore } from '../../stores/uploadStore'
-import { TIPOS_DE_ERRO, nomeDoCampo } from '../../constants/validacao'
+import { TIPOS_DE_ERRO, REGRAS_VERIFICADAS, nomeDoCampo } from '../../constants/validacao'
 
 const store = useUploadStore()
 
-// Resumo das regras de utils/validacao.js (dicionário de dados da aula).
-const REGRAS = [
-  'Colunas do modelo e campos obrigatórios',
-  'Código do cliente sem repetição',
-  'Segmento da lista e nível A, B ou C',
-  'Faturamento numérico e não negativo',
-  'Data de contratação válida (dd/mm/aaaa)',
-  'Cidade e UF opcionais; UF com 2 letras'
-]
-
 const invalidas = computed(() => store.quantidadeInvalidas)
 
-const semResultado = computed(() => ['Erro na leitura', 'Arquivo recusado'].includes(store.statusValidacao)
-  ? 'Sem resultado: o arquivo não pôde ser processado. Veja o aviso no cartão ao lado.'
-  : 'Processe um arquivo para ver o resultado da validação.')
+const semResultado = computed(() => store.falhouLeitura
+  ? 'Sem resultado: não foi possível abrir a planilha. Veja o aviso no cartão ao lado.'
+  : 'Escolha uma planilha e clique em Conferir planilha para ver o resultado aqui.')
 
 // Tipos de erro que apareceram, na ordem e com as cores de constants/validacao.js.
 const tiposEncontrados = computed(() => TIPOS_DE_ERRO

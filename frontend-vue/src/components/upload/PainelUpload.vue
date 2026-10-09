@@ -5,7 +5,7 @@
       <AreaSoltarArquivo @selecionar="store.registrarArquivo" />
 
       <!-- Arquivo recusado (formato/tamanho) ou que não pôde ser lido (colunas faltando, aba vazia): avisa junto do envio. -->
-      <p v-if="['Arquivo recusado', 'Erro na leitura'].includes(store.statusValidacao)" role="alert" class="mt-3 rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-700">
+      <p v-if="store.falhouLeitura" role="alert" class="mt-3 rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-700">
         {{ store.erros[0] }}
       </p>
 

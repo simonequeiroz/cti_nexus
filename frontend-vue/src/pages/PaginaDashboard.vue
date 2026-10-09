@@ -56,19 +56,20 @@
           <h2 id="titulo-proximos-passos" class="font-display font-bold text-xl">O que fazer agora</h2>
           <p class="mt-1 text-sm text-black-light">
             <template v-if="store.quantidadeInvalidas">
-              Ainda {{ store.quantidadeInvalidas === 1 ? 'há 1 linha' : `há ${store.quantidadeInvalidas} linhas` }} fora do painel. Corrija para a análise ficar completa.
+              Ainda {{ store.quantidadeInvalidas === 1 ? 'há 1 linha' : `há ${store.quantidadeInvalidas} linhas` }} fora do painel.
+              {{ auth.pode('corrigir_dados') ? 'Corrija para a análise ficar completa.' : 'A equipe de operações precisa corrigir para a análise ficar completa.' }}
             </template>
             <template v-else>
-              Todos os clientes da planilha estão no painel. Guarde o relatório ou envie outra planilha.
+              Todos os clientes da planilha estão no painel. {{ auth.pode('enviar_planilha') ? 'Guarde o relatório ou envie outra planilha.' : 'Veja o relatório para guardar ou imprimir.' }}
             </template>
           </p>
         </div>
         <div class="flex flex-wrap gap-3">
-          <BotaoBase v-if="store.quantidadeInvalidas" href="#validacao">
+          <BotaoBase v-if="store.quantidadeInvalidas && auth.pode('corrigir_dados')" href="#validacao">
             Corrigir {{ store.quantidadeInvalidas }} {{ store.quantidadeInvalidas === 1 ? 'linha' : 'linhas' }} →
           </BotaoBase>
-          <BotaoBase href="#relatorio" :variante="store.quantidadeInvalidas ? 'secundario' : 'primario'">Ver relatório</BotaoBase>
-          <BotaoBase href="#upload" variante="secundario">Enviar outra planilha</BotaoBase>
+          <BotaoBase href="#relatorio" :variante="store.quantidadeInvalidas && auth.pode('corrigir_dados') ? 'secundario' : 'primario'">Ver relatório</BotaoBase>
+          <BotaoBase v-if="auth.pode('enviar_planilha')" href="#upload" variante="secundario">Enviar outra planilha</BotaoBase>
         </div>
       </section>
     </template>
@@ -92,11 +93,13 @@ import ResumoEstatistico from '../components/dashboard/ResumoEstatistico.vue'
 import ListaInsights from '../components/dashboard/ListaInsights.vue'
 import BotaoBase from '../components/ui/BotaoBase.vue'
 import { useUploadStore } from '../stores/uploadStore'
+import { useAutenticacaoStore } from '../stores/autenticacaoStore'
 import { soma, media, mediana, desvioPadrao } from '../utils/estatistica'
 import { listaDeServicos, gerarInsights } from '../utils/dadosDashboard'
 import { formatarMoeda } from '../utils/formatadores'
 
 const store = useUploadStore()
+const auth = useAutenticacaoStore()
 
 // Estado local dos filtros.
 const segmento = ref('')

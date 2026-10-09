@@ -1,4 +1,4 @@
-<!-- Aviso mostrado quando ainda não há planilha processada (usado no relatório e no dashboard). -->
+<!-- Aviso mostrado quando ainda não há planilha processada (usado no relatório e no dashboard). Quem só consulta (gestor) não vê o botão de envio. -->
 <template>
   <section class="max-w-lg mx-auto text-center bg-white border border-blue-secondary/80 rounded-2xl p-10 shadow-sm mt-10">
     <div class="w-12 h-12 mx-auto rounded-full bg-blue-primary/10 text-blue-primary flex items-center justify-center mb-4" aria-hidden="true">
@@ -7,13 +7,19 @@
       </svg>
     </div>
     <h1 class="font-display font-bold text-2xl">{{ titulo }}</h1>
-    <p class="mt-2 text-sm text-regular">{{ texto }}</p>
-    <BotaoBase href="#upload" tamanho="lg" class="mt-6">Enviar planilha</BotaoBase>
+    <template v-if="auth.pode('enviar_planilha')">
+      <p class="mt-2 text-sm text-regular">{{ texto }}</p>
+      <BotaoBase href="#upload" tamanho="lg" class="mt-6">Enviar planilha</BotaoBase>
+    </template>
+    <p v-else class="mt-2 text-sm text-regular">Ainda não há planilha conferida. Quando a equipe de operações enviar uma, ela aparece aqui.</p>
   </section>
 </template>
 
 <script setup>
 import BotaoBase from '../ui/BotaoBase.vue'
+import { useAutenticacaoStore } from '../../stores/autenticacaoStore'
+
+const auth = useAutenticacaoStore()
 
 defineProps({
   titulo: { type: String, default: 'Nenhum relatório disponível' },

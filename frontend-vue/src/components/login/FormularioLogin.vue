@@ -1,4 +1,4 @@
-<!-- Formulário de login. Ao entrar com sucesso, leva para a tela de upload. -->
+<!-- Formulário de login. Ao entrar, leva para a primeira tela que o papel pode abrir (upload ou painel). -->
 <template>
   <form class="space-y-5" novalidate @submit.prevent="entrar">
     <CampoTexto v-model="email" rotulo="E-mail" type="email" autocomplete="username" placeholder="voce@empresa.com" />
@@ -34,11 +34,20 @@
   <aside class="mt-8 border border-dashed border-blue-secondary rounded-lg p-4 text-xs text-regular" aria-labelledby="titulo-demo">
     <!-- Saída para quem chegou pela página inicial e ainda não tem acesso. -->
     <h2 id="titulo-demo" class="text-sm font-semibold text-black-dark">Primeira vez aqui?</h2>
-    <p class="mt-1 mb-2">Use o acesso de demonstração para conhecer o sistema e enviar sua primeira planilha.</p>
-    <p class="font-mono">admin@ctinexus.com · 123456</p>
-    <button type="button" class="mt-2 font-semibold text-blue-primary hover:underline" @click="preencherDemo">
-      Preencher automaticamente
-    </button>
+    <p class="mt-1 mb-3">Escolha um acesso de demonstração. Cada um vê e pode fazer coisas diferentes. Senha de todos: <span class="font-mono">123456</span>.</p>
+    <ul class="flex flex-col gap-2">
+      <li v-for="demo in USUARIOS_DEMO" :key="demo.email">
+        <button
+          type="button"
+          class="w-full text-left rounded-lg border border-blue-secondary px-3 py-2 hover:border-blue-primary hover:bg-blue-primary/5 transition-colors"
+          @click="preencherDemo(demo)"
+        >
+          <span class="block font-semibold text-blue-primary">{{ PAPEIS[demo.papel].nome }}</span>
+          <span class="block">{{ PAPEIS[demo.papel].descricao }}</span>
+          <span class="block font-mono mt-0.5">{{ demo.email }}</span>
+        </button>
+      </li>
+    </ul>
   </aside>
 </template>
 
@@ -47,7 +56,9 @@ import { ref } from 'vue'
 import CampoTexto from '../ui/CampoTexto.vue'
 import BotaoBase from '../ui/BotaoBase.vue'
 import { useAutenticacaoStore } from '../../stores/autenticacaoStore'
+import { USUARIOS_DEMO } from '../../stores/usuariosStore'
 import { useRotas } from '../../composables/useRotas'
+import { PAPEIS } from '../../constants/permissoes'
 
 const auth = useAutenticacaoStore()
 const { irPara } = useRotas()
@@ -58,11 +69,11 @@ const mostrarSenha = ref(false)
 
 async function entrar() {
   const deuCerto = await auth.login(email.value, senha.value)
-  if (deuCerto) irPara('#upload') // Depois do login, vai para a tela de upload.
+  if (deuCerto) irPara(auth.telaDeEntrada) // Analista e administrador vão para o upload; gestor, para o painel.
 }
 
-function preencherDemo() {
-  email.value = 'admin@ctinexus.com'
-  senha.value = '123456'
+function preencherDemo(demo) {
+  email.value = demo.email
+  senha.value = demo.senha
 }
 </script>

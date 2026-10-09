@@ -1,4 +1,4 @@
-<!-- Mostra a página de acordo com o endereço (#login, #upload, #validacao, #relatorio, #dashboard ou a landing page). -->
+<!-- Mostra a página de acordo com o endereço (#login, #upload, #validacao, #relatorio, #dashboard, #usuarios ou a landing page). -->
 <template>
   <component :is="PAGINAS[rotaAtual] ?? PaginaInicial" />
 </template>
@@ -10,6 +10,7 @@ import PaginaUpload from './pages/PaginaUpload.vue'
 import PaginaValidacao from './pages/PaginaValidacao.vue'
 import PaginaRelatorio from './pages/PaginaRelatorio.vue'
 import PaginaDashboard from './pages/PaginaDashboard.vue'
+import PaginaUsuarios from './pages/PaginaUsuarios.vue'
 import { useRotas, iniciarRotas } from './composables/useRotas'
 
 const PAGINAS = {
@@ -17,7 +18,8 @@ const PAGINAS = {
   '#upload': PaginaUpload,
   '#validacao': PaginaValidacao,
   '#relatorio': PaginaRelatorio,
-  '#dashboard': PaginaDashboard
+  '#dashboard': PaginaDashboard,
+  '#usuarios': PaginaUsuarios
 }
 
 iniciarRotas()
