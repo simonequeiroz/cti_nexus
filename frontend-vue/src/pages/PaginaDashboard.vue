@@ -1,19 +1,35 @@
-<!-- Tela de dashboard: indicadores, gráficos, estatísticas e insights dos clientes válidos. -->
+<!-- Tela de dashboard: destaques, indicadores, gráficos, estatísticas e insights dos clientes LIBERADOS (não basta estarem aprovados). -->
 <template>
   <LayoutSistema>
     <RelatorioVazio
-      v-if="!store.quantidadeValidas"
+      v-if="!store.quantidadeValidas && !store.liberada"
       titulo="Nenhum dado para o painel"
       texto="Envie e confira uma planilha com pelo menos uma linha aprovada para ver os gráficos e as conclusões."
     />
+
+    <!-- Aprovada mas não liberada: o painel só mostra o que alguém com permissão liberou. -->
+    <RelatorioVazio v-else-if="!store.liberada" titulo="Painel esperando liberação">
+      <template v-if="auth.pode('aprovar_carga')">
+        <p class="mt-2 text-sm text-regular">
+          {{ store.quantidadeValidas }} {{ store.quantidadeValidas === 1 ? 'cliente aprovado' : 'clientes aprovados' }} de
+          <strong class="text-black-dark">{{ store.nomeArquivo }}</strong> ainda não {{ store.quantidadeValidas === 1 ? 'foi liberado' : 'foram liberados' }}.
+          Revise e libere para {{ store.quantidadeValidas === 1 ? 'ele aparecer' : 'eles aparecerem' }} aqui.
+        </p>
+        <BotaoBase href="#validacao" tamanho="lg" class="mt-6">Revisar e liberar</BotaoBase>
+      </template>
+      <p v-else class="mt-2 text-sm text-regular">
+        A planilha <strong class="text-black-dark">{{ store.nomeArquivo }}</strong> já foi conferida, mas a equipe de operações ainda não liberou os clientes para o painel.
+      </p>
+    </RelatorioVazio>
 
     <template v-else>
       <div class="flex flex-col xl:flex-row xl:items-end xl:justify-between gap-6">
         <IntroducaoPagina etapa="Passo 4 de 4 — Dashboard" titulo="Painel da carteira">
           <p>
-            Análise dos {{ store.quantidadeValidas }} clientes aprovados de <strong class="text-black-dark">{{ store.nomeArquivo }}</strong>.
-            <template v-if="store.quantidadeInvalidas">
-              {{ store.quantidadeInvalidas }} {{ store.quantidadeInvalidas === 1 ? 'linha com erro ficou' : 'linhas com erro ficaram' }} de fora
+            Análise dos {{ store.quantidadeLiberados }} clientes de <strong class="text-black-dark">{{ store.nomeArquivo }}</strong>,
+            liberados por {{ store.liberacao.por?.nome ?? '—' }} em {{ formatarData(store.liberacao.em) }}.
+            <template v-if="foraDoPainel">
+              {{ foraDoPainel }} {{ foraDoPainel === 1 ? 'linha ficou' : 'linhas ficaram' }} de fora
               (<a href="#relatorio" class="text-blue-primary font-medium hover:underline">ver relatório</a>).
             </template>
           </p>
@@ -22,9 +38,17 @@
         <FiltrosDashboard v-model:segmento="segmento" v-model:nivel="nivel" :segmentos="segmentos" />
       </div>
 
+      <p v-if="store.mudouDesdeLiberacao" role="status" class="mt-6 rounded-lg border border-orange/30 bg-orange/10 px-4 py-2.5 text-sm text-orange-dark">
+        Há correções feitas depois da liberação que ainda não aparecem aqui.
+        <a v-if="auth.pode('aprovar_carga')" href="#validacao" class="font-semibold underline">Liberar de novo</a>
+      </p>
+
       <p v-if="!clientes.length" class="mt-10 text-center text-regular">Nenhum cliente com esses filtros.</p>
 
       <template v-else>
+        <!-- Entrada do painel: as conclusões mais importantes antes dos gráficos. -->
+        <DestaquesInsights v-if="destaques.length" :insights="destaques" class="mt-8" />
+
         <section aria-labelledby="titulo-indicadores" class="mt-8">
           <h2 id="titulo-indicadores" class="sr-only">Indicadores da carteira</h2>
           <GradeEstatisticas :itens="indicadores" class="grid-cols-2 md:grid-cols-3 xl:grid-cols-6" />
@@ -38,8 +62,9 @@
         <GraficoContratacoes :clientes="clientes" class="mt-6" />
 
         <div class="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
-          <ListaInsights :insights="insights" />
-          <div class="flex flex-col gap-6">
+          <ListaInsights v-if="outrasConclusoes.length" titulo="Outras conclusões" :insights="outrasConclusoes" />
+          <!-- Sem outras conclusões, os dois gráficos ocupam a linha inteira, lado a lado. -->
+          <div :class="outrasConclusoes.length ? 'flex flex-col gap-6' : 'lg:col-span-2 grid grid-cols-1 lg:grid-cols-2 gap-6'">
             <GraficoServicos :clientes="clientes" />
             <GraficoDispersao :clientes="clientes" />
           </div>
@@ -91,12 +116,13 @@ import GraficoFaturamento from '../components/dashboard/GraficoFaturamento.vue'
 import GraficoDispersao from '../components/dashboard/GraficoDispersao.vue'
 import ResumoEstatistico from '../components/dashboard/ResumoEstatistico.vue'
 import ListaInsights from '../components/dashboard/ListaInsights.vue'
+import DestaquesInsights from '../components/dashboard/DestaquesInsights.vue'
 import BotaoBase from '../components/ui/BotaoBase.vue'
 import { useUploadStore } from '../stores/uploadStore'
 import { useAutenticacaoStore } from '../stores/autenticacaoStore'
 import { soma, media, mediana, desvioPadrao } from '../utils/estatistica'
 import { listaDeServicos, gerarInsights } from '../utils/dadosDashboard'
-import { formatarMoeda } from '../utils/formatadores'
+import { formatarMoeda, formatarData } from '../utils/formatadores'
 
 const store = useUploadStore()
 const auth = useAutenticacaoStore()
@@ -105,10 +131,10 @@ const auth = useAutenticacaoStore()
 const segmento = ref('')
 const nivel = ref('')
 
-const segmentos = computed(() => [...new Set(store.dadosValidos.map(c => c.segmento))].sort())
+const segmentos = computed(() => [...new Set(store.dadosLiberados.map(c => c.segmento))].sort())
 
-// Clientes válidos que passam pelos filtros: todos os gráficos usam esta lista.
-const clientes = computed(() => store.dadosValidos.filter(c =>
+// Clientes liberados que passam pelos filtros: todos os gráficos usam esta lista.
+const clientes = computed(() => store.dadosLiberados.filter(c =>
   (!segmento.value || c.segmento === segmento.value) &&
   (!nivel.value || c.nivel_cliente === nivel.value)
 ))
@@ -126,5 +152,11 @@ const indicadores = computed(() => {
   ]
 })
 
-const insights = computed(() => gerarInsights(clientes.value))
+const foraDoPainel = computed(() => store.quantidadeLinhas - store.quantidadeLiberados) // Linhas com erro (ou corrigidas e ainda não liberadas).
+
+// Insights da mais para a menos importante: os 3 primeiros vão para o topo, o resto fica na lista (sem repetir).
+const ORDEM_DA_PRIORIDADE = { Alta: 0, Média: 1, Baixa: 2 }
+const insights = computed(() => [...gerarInsights(clientes.value)].sort((a, b) => ORDEM_DA_PRIORIDADE[a.prioridade] - ORDEM_DA_PRIORIDADE[b.prioridade]))
+const destaques = computed(() => insights.value.slice(0, 3))
+const outrasConclusoes = computed(() => insights.value.slice(3))
 </script>

@@ -7,11 +7,14 @@
       </svg>
     </div>
     <h1 class="font-display font-bold text-2xl">{{ titulo }}</h1>
-    <template v-if="auth.pode('enviar_planilha')">
-      <p class="mt-2 text-sm text-regular">{{ texto }}</p>
-      <BotaoBase href="#upload" tamanho="lg" class="mt-6">Enviar planilha</BotaoBase>
-    </template>
-    <p v-else class="mt-2 text-sm text-regular">Ainda não há planilha conferida. Quando a equipe de operações enviar uma, ela aparece aqui.</p>
+    <!-- O slot troca o conteúdo padrão (ex.: painel esperando liberação). -->
+    <slot>
+      <template v-if="auth.pode('enviar_planilha')">
+        <p class="mt-2 text-sm text-regular">{{ texto }}</p>
+        <BotaoBase href="#upload" tamanho="lg" class="mt-6">Enviar planilha</BotaoBase>
+      </template>
+      <p v-else class="mt-2 text-sm text-regular">Ainda não há planilha conferida. Quando a equipe de operações enviar uma, ela aparece aqui.</p>
+    </slot>
   </section>
 </template>
 

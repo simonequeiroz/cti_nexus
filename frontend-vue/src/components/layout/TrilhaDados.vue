@@ -169,13 +169,15 @@ const etapas = computed(() => {
     detalhe: temDados.value ? `${store.percentualValido}% de qualidade` : 'aguardando planilha'
   }
 
-  const validas = store.quantidadeValidas
+  const liberados = store.quantidadeLiberados
   const dashboard = {
     rotulo: 'Dashboard',
     icone: 'dashboard',
     link: '#dashboard',
-    estado: validas ? 'concluida' : 'pendente',
-    detalhe: validas ? `${validas} ${validas === 1 ? 'cliente' : 'clientes'}` : 'aguardando dados'
+    estado: !store.liberada ? 'pendente' : store.mudouDesdeLiberacao ? 'alerta' : 'concluida',
+    detalhe: store.liberada
+      ? (store.mudouDesdeLiberacao ? 'há dados novos' : `${liberados} ${liberados === 1 ? 'cliente' : 'clientes'}`)
+      : store.quantidadeValidas ? 'aguardando liberação' : 'aguardando dados'
   }
 
   // Etapa que o papel não pode abrir: continua na trilha (o dado passa por ela), mas sem link.

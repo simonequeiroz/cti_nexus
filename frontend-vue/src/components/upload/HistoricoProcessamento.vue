@@ -15,7 +15,8 @@
     <TabelaDados v-if="store.historico.length" legenda="Planilhas enviadas nesta visita" :colunas="COLUNAS">
       <tr v-for="registro in store.historico" :key="registro.id">
         <td class="pl-6 pr-4 py-2.5 font-mono whitespace-nowrap">
-          <time :datetime="dataISO(registro.dataProcessamento)">{{ formatarData(registro.dataProcessamento) }}</time>
+          <time class="block" :datetime="dataISO(registro.dataProcessamento)">{{ formatarData(registro.dataProcessamento) }}</time>
+          <span v-if="registro.duracaoMs" class="block text-xs text-regular">conferida em {{ formatarDuracao(registro.duracaoMs) }}</span>
         </td>
         <th scope="row" class="px-4 py-2.5 max-w-[220px] font-normal text-left">
           <span class="block truncate" :title="registro.nomeArquivo">{{ registro.nomeArquivo }}</span>
@@ -28,7 +29,10 @@
         <td class="px-4 py-2.5 text-right font-mono text-green">{{ registro.validas }}</td>
         <td class="px-4 py-2.5 text-right font-mono" :class="{ 'text-orange': registro.invalidas }">{{ registro.invalidas }}</td>
         <td class="px-4 py-2.5 text-right font-mono">{{ registro.percentualValido }}%</td>
-        <td class="px-4 py-2.5"><EtiquetaBase :cor="corDoStatus(registro.status)">{{ registro.status }}</EtiquetaBase></td>
+        <td class="px-4 py-2.5">
+          <EtiquetaBase :cor="corDoStatus(registro.status)">{{ registro.status }}</EtiquetaBase>
+          <span v-if="registro.liberadoPor" class="block mt-1 text-xs text-green-dark whitespace-nowrap">liberada por {{ registro.liberadoPor.nome }}</span>
+        </td>
         <td class="px-4 pr-6 py-2.5 text-right">
           <!-- Só a planilha aberta pode ser corrigida; as anteriores já foram substituídas. -->
           <a
@@ -53,7 +57,7 @@ import MensagemVazia from '../ui/MensagemVazia.vue'
 import { useUploadStore } from '../../stores/uploadStore'
 import { useAutenticacaoStore } from '../../stores/autenticacaoStore'
 import { corDoStatus } from '../../constants/validacao'
-import { formatarData, formatarTamanho, dataISO } from '../../utils/formatadores'
+import { formatarData, formatarTamanho, formatarDuracao, dataISO } from '../../utils/formatadores'
 
 const COLUNAS = [
   { rotulo: 'Data' },

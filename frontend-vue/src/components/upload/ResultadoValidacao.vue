@@ -18,6 +18,7 @@
           <template v-else>
             As {{ store.quantidadeLinhas.toLocaleString('pt-BR') }} linhas estão corretas e prontas para a análise.
           </template>
+          Conferida em {{ formatarDuracao(store.duracaoMs) }}.
         </p>
 
         <div class="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-6">
@@ -42,9 +43,10 @@
           </section>
         </div>
 
-        <!-- Próximo passo: corrigir se houver erro; senão, ir para a análise. -->
+        <!-- Próximo passo: corrigir se houver erro; senão, revisar e liberar para o painel (na Validação). -->
         <div class="mt-6 flex flex-wrap gap-3">
           <BotaoBase v-if="invalidas" href="#validacao">Corrigir {{ invalidas }} {{ invalidas === 1 ? 'linha' : 'linhas' }} →</BotaoBase>
+          <BotaoBase v-else-if="!store.liberada" href="#validacao">Revisar e liberar →</BotaoBase>
           <BotaoBase v-else href="#dashboard">Ver painel →</BotaoBase>
           <BotaoBase href="#relatorio" variante="secundario">Ver relatório</BotaoBase>
         </div>
@@ -72,6 +74,7 @@ import CartaoPainel from '../ui/CartaoPainel.vue'
 import BotaoBase from '../ui/BotaoBase.vue'
 import { useUploadStore } from '../../stores/uploadStore'
 import { TIPOS_DE_ERRO, REGRAS_VERIFICADAS, nomeDoCampo } from '../../constants/validacao'
+import { formatarDuracao } from '../../utils/formatadores'
 
 const store = useUploadStore()
 

@@ -1,4 +1,4 @@
-<!-- Tela de validação: conferir as linhas com erro, corrigir os valores na tela, revalidar e baixar a planilha corrigida. -->
+<!-- Tela de validação: conferir as linhas com erro, corrigir os valores na tela, revalidar, liberar para o painel e baixar a planilha corrigida. -->
 <template>
   <LayoutSistema>
     <RelatorioVazio
@@ -14,8 +14,10 @@
           que o sistema não conseguiu resolver sozinho. Corrija os campos destacados e clique em <strong class="text-black-dark">Conferir de novo</strong>.
           As correções valem enquanto a página estiver aberta; baixe a planilha corrigida para guardar.
         </p>
-        <p v-else>Nenhuma linha precisa da sua ajuda. Abaixo estão os ajustes que o sistema fez sozinho.</p>
+        <p v-else>Nenhuma linha precisa da sua ajuda. Confira os ajustes que o sistema fez sozinho e libere os clientes para o painel.</p>
       </IntroducaoPagina>
+
+      <CartaoLiberacao v-if="store.quantidadeValidas || store.liberada" class="mt-6" />
 
       <!-- Barra de ações: fica presa no topo enquanto a lista rola. -->
       <div class="sticky top-0 z-10 -mx-6 mt-6 px-6 py-3 bg-surface/90 backdrop-blur-sm border-b border-blue-secondary/60 flex flex-wrap items-center gap-3">
@@ -36,11 +38,9 @@
         </div>
       </div>
 
-      <section v-if="!store.quantidadeInvalidas" class="mt-6 rounded-2xl border border-green/40 bg-green/10 p-6 text-center">
-        <p class="font-display font-bold text-lg text-green-dark">Todas as linhas estão válidas</p>
-        <p class="mt-1 text-sm text-regular">A planilha está pronta para a análise.</p>
-        <BotaoBase href="#dashboard" variante="contorno" class="mt-4">Ver painel →</BotaoBase>
-      </section>
+      <p v-if="!store.quantidadeInvalidas" class="mt-6 rounded-2xl border border-green/40 bg-green/10 p-5 text-center font-display font-bold text-green-dark">
+        Todas as linhas estão válidas
+      </p>
 
       <template v-else>
         <div class="mt-6 flex flex-wrap items-end gap-4" role="search" aria-label="Filtrar linhas com erro">
@@ -82,7 +82,8 @@
         </div>
       </template>
 
-      <TabelaPadronizacao class="mt-10" />
+      <RegistroAlteracoes class="mt-10" />
+      <TabelaPadronizacao class="mt-6" />
     </template>
   </LayoutSistema>
 </template>
@@ -95,6 +96,8 @@ import BotaoBase from '../components/ui/BotaoBase.vue'
 import RelatorioVazio from '../components/relatorio/RelatorioVazio.vue'
 import TabelaPadronizacao from '../components/relatorio/TabelaPadronizacao.vue'
 import LinhaInvalida from '../components/validacao/LinhaInvalida.vue'
+import CartaoLiberacao from '../components/validacao/CartaoLiberacao.vue'
+import RegistroAlteracoes from '../components/validacao/RegistroAlteracoes.vue'
 import { useUploadStore } from '../stores/uploadStore'
 import { nomeDoCampo } from '../constants/validacao'
 

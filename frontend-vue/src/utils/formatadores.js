@@ -26,3 +26,8 @@ export function formatarMoeda(valor, compacto = false) { // Ex.: R$ 2.373.500,00
 export function porcentagem(parte, total) { // Largura das barras. Ex.: 3 de 6 vira "50%".
   return total ? `${(parte / total) * 100}%` : '0%'
 }
+
+export function formatarDuracao(ms) { // Ex.: 1234 vira "1,2 s"; abaixo de 0,1 s vira "menos de 0,1 s".
+  if (ms < 100) return 'menos de 0,1 s'
+  return `${(ms / 1000).toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} s`
+}

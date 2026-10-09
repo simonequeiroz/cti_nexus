@@ -6,7 +6,7 @@
 export const PERMISSOES = {
   enviar_planilha: 'Enviar planilhas',
   corrigir_dados: 'Ver erros e corrigir linhas',
-  aprovar_carga: 'Aprovar a carga dos dados', // Sem tela ainda: depende do banco (o "L" do ETL).
+  aprovar_carga: 'Liberar os clientes aprovados para o painel', // O "L" do ETL; com o back-end, também grava no banco.
   ver_relatorio: 'Ver relatórios',
   ver_painel: 'Ver o painel da carteira',
   limpar_historico: 'Limpar o histórico de envios',
