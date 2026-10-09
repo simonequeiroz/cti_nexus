@@ -1,6 +1,6 @@
-<!-- Medidas de tendência central e dispersão do faturamento, por segmento ou por nível, com boxplot. -->
+<!-- Faturamento por segmento ou por nível: barras (Chart.js) com a média de cada grupo e tabela com média, mediana e desvio padrão. -->
 <template>
-  <CartaoPainel titulo="Estatísticas do faturamento" descricao="Mediana: o valor do meio. Desvio padrão: o quanto os clientes variam entre si (quanto maior, mais diferentes). Na barra, a linha vai do menor ao maior faturamento, a caixa marca a metade central dos clientes e o traço é a mediana.">
+  <CartaoPainel titulo="Estatísticas do faturamento" descricao="Quanto fatura, em média, um cliente de cada grupo. Mediana: o valor do meio. Desvio padrão: o quanto os clientes variam entre si (quanto maior, mais diferentes).">
     <template #acoes>
       <div class="inline-flex self-start rounded-lg border border-blue-secondary p-0.5 text-sm" role="group" aria-label="Agrupar estatísticas por">
         <button
@@ -17,23 +17,27 @@
       </div>
     </template>
 
+    <div class="p-6">
+      <GraficoBase
+        :dados="dados"
+        nome-serie="Faturamento médio"
+        :descricao="`Faturamento médio anual por ${agrupamento === 'nivel_cliente' ? 'nível' : 'segmento'}`"
+        titulo-y="Faturamento médio"
+        :formatar-valor="valor => formatarMoeda(valor, true)"
+        :formatar-eixo="valor => formatarMoeda(valor, true)"
+        :cores="linhas.map(l => l.cor)"
+      />
+    </div>
+
     <TabelaDados legenda="Estatísticas do faturamento anual por grupo" :colunas="COLUNAS">
-      <tr v-for="linha in linhas" :key="linha.nome" :class="{ 'bg-surface font-semibold': linha.total }">
+      <tr v-for="linha in [...linhas, total]" :key="linha.nome" :class="{ 'bg-surface font-semibold': linha === total }">
         <th scope="row" class="px-4 py-3 pl-6 text-left font-medium whitespace-nowrap">
           <span class="inline-block w-2.5 h-2.5 rounded-full mr-2 align-middle" :style="{ backgroundColor: linha.cor }" aria-hidden="true"></span>{{ linha.nome }}
         </th>
         <td class="px-4 py-3 text-right font-mono">{{ linha.quantidade }}</td>
         <td class="px-4 py-3 text-right font-mono whitespace-nowrap">{{ formatarMoeda(linha.media, true) }}</td>
         <td class="px-4 py-3 text-right font-mono whitespace-nowrap">{{ formatarMoeda(linha.mediana, true) }}</td>
-        <td class="px-4 py-3 text-right font-mono whitespace-nowrap">{{ formatarMoeda(linha.desvioPadrao, true) }}</td>
-        <td class="px-4 py-3 pr-6 min-w-48">
-          <div class="relative h-5" :title="textoBoxplot(linha)">
-            <span class="absolute top-1/2 h-px bg-black-light" :style="faixa(linha.minimo, linha.maximo)"></span>
-            <span class="absolute inset-y-0.5 rounded border" :style="{ ...faixa(linha.q1, linha.q3), backgroundColor: `${linha.cor}33`, borderColor: linha.cor }"></span>
-            <span class="absolute inset-y-0 w-0.5" :style="{ left: posicao(linha.mediana), backgroundColor: linha.cor }"></span>
-            <span class="sr-only">{{ textoBoxplot(linha) }}</span>
-          </div>
-        </td>
+        <td class="px-4 py-3 pr-6 text-right font-mono whitespace-nowrap">{{ formatarMoeda(linha.desvioPadrao, true) }}</td>
       </tr>
     </TabelaDados>
   </CartaoPainel>
@@ -43,6 +47,7 @@
 import { ref, computed } from 'vue'
 import CartaoPainel from '../ui/CartaoPainel.vue'
 import TabelaDados from '../ui/TabelaDados.vue'
+import GraficoBase from './GraficoBase.vue'
 import { agruparPor, resumoEstatistico } from '../../utils/estatistica'
 import { formatarMoeda } from '../../utils/formatadores'
 import { corDoSegmento, CORES_NIVEL } from '../../constants/cores'
@@ -61,42 +66,23 @@ const COLUNAS = [
   { rotulo: 'Clientes', classe: 'text-right' },
   { rotulo: 'Média', classe: 'text-right' },
   { rotulo: 'Mediana', classe: 'text-right' },
-  { rotulo: 'Desvio padrão', classe: 'text-right' },
-  { rotulo: 'Distribuição', classe: 'pr-6' }
+  { rotulo: 'Desvio padrão', classe: 'text-right pr-6' }
 ]
 
 const agrupamento = ref('segmento') // Estado local: por qual campo agrupar.
 
 const linhas = computed(() => {
   const porNivel = agrupamento.value === 'nivel_cliente'
-  const grupos = Object.entries(agruparPor(props.clientes, c => c[agrupamento.value]))
+  return Object.entries(agruparPor(props.clientes, c => c[agrupamento.value]))
     .map(([nome, grupo]) => ({
       nome: porNivel ? `Nível ${nome}` : nome,
       cor: porNivel ? CORES_NIVEL[nome] : corDoSegmento(nome), // Mesma cor do grupo nos gráficos.
       ...resumoEstatistico(grupo.map(c => c.faturamento_anual))
     }))
     .sort((a, b) => (porNivel ? a.nome.localeCompare(b.nome) : b.media - a.media))
-
-  const total = { nome: 'Carteira toda', total: true, cor: '#707070', ...resumoEstatistico(props.clientes.map(c => c.faturamento_anual)) }
-  return [...grupos, total]
 })
 
-// Escala comum a todos os boxplots: do menor ao maior faturamento da carteira.
-const escala = computed(() => {
-  const valores = props.clientes.map(c => c.faturamento_anual)
-  return { minimo: Math.min(...valores), maximo: Math.max(...valores) }
-})
+const total = computed(() => ({ nome: 'Carteira toda', cor: '#707070', ...resumoEstatistico(props.clientes.map(c => c.faturamento_anual)) }))
 
-function posicao(valor) {
-  const { minimo, maximo } = escala.value
-  return `${maximo > minimo ? ((valor - minimo) / (maximo - minimo)) * 100 : 50}%`
-}
-
-function faixa(inicio, fim) {
-  return { left: posicao(inicio), width: `calc(${posicao(fim)} - ${posicao(inicio)})` }
-}
-
-function textoBoxplot(linha) {
-  return `Mínimo ${formatarMoeda(linha.minimo, true)}, Q1 ${formatarMoeda(linha.q1, true)}, mediana ${formatarMoeda(linha.mediana, true)}, Q3 ${formatarMoeda(linha.q3, true)}, máximo ${formatarMoeda(linha.maximo, true)}`
-}
+const dados = computed(() => linhas.value.map(l => ({ rotulo: l.nome, valor: l.media })))
 </script>

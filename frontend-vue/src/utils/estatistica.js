@@ -54,10 +54,6 @@ export function resumoEstatistico(valores) { // Todas as medidas de uma vez, par
     quantidade: valores.length,
     media: media(valores),
     mediana: mediana(valores),
-    desvioPadrao: desvioPadrao(valores),
-    minimo: valores.length ? Math.min(...valores) : 0,
-    maximo: valores.length ? Math.max(...valores) : 0,
-    q1: quartil(valores, 0.25),
-    q3: quartil(valores, 0.75)
+    desvioPadrao: desvioPadrao(valores)
   }
 }
