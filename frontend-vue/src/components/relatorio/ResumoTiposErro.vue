@@ -14,6 +14,12 @@
           {{ quantidadeDoTipo(tipo.nome) }}
         </td>
       </tr>
+      <tr>
+        <th scope="row" class="pl-6 pr-4 py-3 font-normal text-left text-regular">
+          Ajustes automáticos <span class="text-xs">(espaços, maiúsculas, escrita; não são erros)</span>
+        </th>
+        <td class="px-6 py-3 text-right font-mono font-semibold text-regular">{{ store.padronizacoes.length }}</td>
+      </tr>
       <tr class="bg-green/5">
         <th scope="row" class="pl-6 pr-4 py-3 font-semibold text-left text-green-dark">Linhas aprovadas</th>
         <td class="px-6 py-3 text-right font-mono font-semibold text-green-dark">{{ store.quantidadeValidas }}</td>

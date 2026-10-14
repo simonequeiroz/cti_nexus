@@ -12,7 +12,7 @@ export const LINHAS_MAXIMAS = 20000
 export const COLUNAS_OBRIGATORIAS = [
   'codigo_cliente', 'nome_cliente', 'consultor', 'segmento', 'nivel_cliente',
   'faturamento_anual', 'servicos_contratados', 'data_contratacao'
-] // cidade e uf são opcionais.
+] // cidade, uf e email são opcionais.
 
 export const SEGMENTOS_VALIDOS = ['Indústria', 'Comércio', 'Serviços', 'Saúde', 'Educação', 'Tecnologia']
 
@@ -25,7 +25,8 @@ export const REGRAS_VERIFICADAS = [
   `Segmento da lista e nível ${NIVEIS_VALIDOS.slice(0, -1).join(', ')} ou ${NIVEIS_VALIDOS.at(-1)}`,
   'Faturamento numérico e não negativo',
   'Data de contratação válida (dd/mm/aaaa)',
-  'Cidade e UF opcionais; UF com 2 letras'
+  'Cidade e UF opcionais; UF com 2 letras',
+  'E-mail opcional; se preenchido, no formato nome@empresa.com.br'
 ]
 
 // Tipos de erro gerados por validarLinhas(), com as cores usadas em cada um.
@@ -33,8 +34,12 @@ export const TIPOS_DE_ERRO = [
   { nome: 'Campo vazio', ponto: 'bg-orange', etiqueta: 'bg-orange/15 text-orange-dark' },
   { nome: 'Código repetido', ponto: 'bg-pink', etiqueta: 'bg-pink/10 text-pink' },
   { nome: 'Fora do padrão', ponto: 'bg-blue-primary', etiqueta: 'bg-blue-primary/10 text-blue-primary' },
-  { nome: 'Valor inválido', ponto: 'bg-red-500', etiqueta: 'bg-red-100 text-red-700' }
+  { nome: 'Valor inválido', ponto: 'bg-red-500', etiqueta: 'bg-red-100 text-red-700' },
+  { nome: 'E-mail inválido', ponto: 'bg-teal-600', etiqueta: 'bg-teal-50 text-teal-800' }
 ]
+
+// Motivos dos ajustes automáticos (utils/validacao.js, motivoDoAjuste). Não impedem a linha de ser aprovada.
+export const MOTIVOS_DE_AJUSTE = ['Espaços extras', 'Maiúsculas e minúsculas', 'Escrita padronizada', 'Formato do valor']
 
 // Nome amigável de cada coluna da planilha, na mesma ordem do dicionário de dados da aula.
 const NOMES_DOS_CAMPOS = {
@@ -47,7 +52,8 @@ const NOMES_DOS_CAMPOS = {
   servicos_contratados: 'Serviços contratados',
   data_contratacao: 'Data de contratação',
   cidade: 'Cidade',
-  uf: 'UF'
+  uf: 'UF',
+  email: 'E-mail'
 }
 
 export const CAMPOS_DA_PLANILHA = Object.keys(NOMES_DOS_CAMPOS) // Ordem das colunas no dicionário de dados.

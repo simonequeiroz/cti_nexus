@@ -1,10 +1,10 @@
-<!-- Valores corrigidos automaticamente (antes → depois). -->
+<!-- Valores corrigidos automaticamente (antes → depois), com o motivo: espaços extras, maiúsculas, escrita ou formato. -->
 <template>
   <CartaoPainel titulo="Ajustes automáticos" descricao="Diferenças de escrita que o sistema corrigiu sozinho. Não impedem a linha de ser aprovada.">
     <template #acoes>
       <ul class="flex flex-wrap gap-2">
-        <li v-for="item in store.padronizacoesPorCampo" :key="item.nome">
-          <EtiquetaBase cor="bg-blue-primary/10 text-blue-primary">{{ nomeDoCampo(item.nome) }}: {{ item.quantidade }}</EtiquetaBase>
+        <li v-for="item in store.padronizacoesPorMotivo" :key="item.nome">
+          <EtiquetaBase cor="bg-blue-primary/10 text-blue-primary">{{ item.nome }}: {{ item.quantidade }}</EtiquetaBase>
         </li>
       </ul>
     </template>
@@ -17,6 +17,7 @@
           <td class="px-4 py-2.5 font-mono whitespace-pre text-orange-dark"><del class="no-underline">"{{ item.antes }}"</del></td>
           <td class="px-4 py-2.5 text-black-light" aria-hidden="true">→</td>
           <td class="px-4 py-2.5 font-mono text-green-dark"><ins class="no-underline">"{{ item.depois }}"</ins></td>
+          <td class="px-4 py-2.5 whitespace-nowrap text-regular">{{ item.motivo }}</td>
         </tr>
       </TabelaDados>
 
@@ -50,7 +51,8 @@ const COLUNAS = [
   { rotulo: 'Campo' },
   { rotulo: 'Antes' },
   { rotulo: 'Para', oculto: true, classe: 'w-8' },
-  { rotulo: 'Depois' }
+  { rotulo: 'Depois' },
+  { rotulo: 'Motivo' }
 ]
 
 const store = useUploadStore()

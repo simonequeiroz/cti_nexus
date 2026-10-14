@@ -1,6 +1,6 @@
 // Testes das regras do dicionário de dados. Rodar com: npm test
 import { describe, it, expect } from 'vitest'
-import { validarLinhas } from './validacao'
+import { validarLinhas, emailValido, motivoDoAjuste } from './validacao'
 
 // Linha válida de base; cada teste muda só o que precisa.
 function linha(alteracoes = {}) {
@@ -48,9 +48,18 @@ describe('padronização', () => {
     expect(validarLinhas([linha({ faturamento_anual: 'R$ 1.850.000,00' })]).validos[0].faturamento_anual).toBe(1850000)
   })
 
+  it('classifica o motivo de cada ajuste automático', () => {
+    expect(motivoDoAjuste('nome_cliente', '  Transportes Rápido  ', 'Transportes Rápido')).toBe('Espaços extras')
+    expect(motivoDoAjuste('consultor', 'CARLOS LIMA', 'Carlos Lima')).toBe('Maiúsculas e minúsculas')
+    expect(motivoDoAjuste('segmento', 'ind.', 'Indústria')).toBe('Escrita padronizada')
+    expect(motivoDoAjuste('faturamento_anual', 'R$ 98.000,00', '98000')).toBe('Formato do valor')
+    const { padronizacoes } = validarLinhas([linha({ nome_cliente: ' Metalúrgica Horizonte ' })])
+    expect(padronizacoes).toEqual([{ linha: 2, campo: 'nome_cliente', antes: ' Metalúrgica Horizonte ', depois: 'Metalúrgica Horizonte', motivo: 'Espaços extras' }])
+  })
+
   it('registra o antes e depois de cada padronização', () => {
     const { padronizacoes } = validarLinhas([linha({ segmento: 'IND.' })])
-    expect(padronizacoes).toEqual([{ linha: 2, campo: 'segmento', antes: 'IND.', depois: 'Indústria' }])
+    expect(padronizacoes).toEqual([{ linha: 2, campo: 'segmento', antes: 'IND.', depois: 'Indústria', motivo: 'Escrita padronizada' }])
   })
 })
 
@@ -100,7 +109,21 @@ describe('regras do dicionário de dados', () => {
   it('aponta código duplicado a partir da segunda ocorrência', () => {
     const resultado = validarLinhas([linha(), linha({ nome_cliente: 'Outra Empresa' })])
     expect(resultado.validos).toHaveLength(1)
-    expect(resultado.erros).toEqual(['Linha 3: Código do cliente repetido em outra linha'])
+    expect(resultado.erros).toEqual(['Linha 3: Código do cliente repetido (já aparece na linha 2)'])
+  })
+
+  it('deixa o e-mail opcional, mas confere o formato quando preenchido', () => {
+    expect(problemasDe({ email: '' })).toEqual([])
+    expect(problemasDe({ email: 'contato@empresa.com.br' })).toEqual([])
+    for (const email of ['contato@', 'contato@empresa', 'contato empresa@x.com', 'contato@@x.com', 'contato..a@x.com']) {
+      expect(problemasDe({ email })).toEqual(['email: E-mail inválido'])
+    }
+  })
+
+  it('padroniza o e-mail (espaços e maiúsculas)', () => {
+    const { validos } = validarLinhas([linha({ email: ' Contato@Empresa.COM.br ' })])
+    expect(validos[0].email).toBe('contato@empresa.com.br')
+    expect(emailValido('ana.souza+cti@empresa.com.br')).toBe(true)
   })
 
   it('numera as linhas como no Excel (cabeçalho na linha 1)', () => {

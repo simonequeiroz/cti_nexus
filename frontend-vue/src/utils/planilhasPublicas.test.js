@@ -25,7 +25,9 @@ describe('planilhas públicas', () => {
     expect(resultado.nomeAba).toBe('upload_clientes')
     expect(resultado.validos).toHaveLength(5)
     expect(resultado.invalidos).toHaveLength(10)
-    expect(new Set(resultado.ocorrencias.map(o => o.tipo))).toEqual(new Set(['Campo vazio', 'Fora do padrão', 'Código repetido', 'Valor inválido']))
+    expect(new Set(resultado.ocorrencias.map(o => o.tipo))).toEqual(new Set(['Campo vazio', 'Fora do padrão', 'Código repetido', 'Valor inválido', 'E-mail inválido']))
+    expect(resultado.ocorrencias.filter(o => o.tipo === 'E-mail inválido')).toHaveLength(3)
     expect(resultado.padronizacoes.length).toBeGreaterThan(20) // Segmentos, nomes, níveis, UF, faturamento...
+    expect(new Set(resultado.padronizacoes.map(p => p.motivo))).toEqual(new Set(['Espaços extras', 'Maiúsculas e minúsculas', 'Escrita padronizada', 'Formato do valor']))
   })
 })

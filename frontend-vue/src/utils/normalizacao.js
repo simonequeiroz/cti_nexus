@@ -37,6 +37,10 @@ export function normalizarSegmento(valor) { // Cria uma função para padronizar
   return texto(valor) // Se não houver regra, mantém o valor tratado.
 }
 
+export function normalizarEmail(valor) { // Ex.: " Contato@Empresa.com.BR " vira contato@empresa.com.br.
+  return texto(valor).toLowerCase()
+}
+
 export function normalizarCodigo(valor) { // Ex.: Cti004 vira CTI004.
   return texto(valor).toUpperCase()
 }

@@ -11,9 +11,26 @@ import {
   normalizarNomePessoa,
   normalizarMoeda,
   normalizarServicos,
-  normalizarData
+  normalizarData,
+  normalizarEmail
 } from './normalizacao'
 import { SEGMENTOS_VALIDOS, NIVEIS_VALIDOS } from '../constants/validacao'
+
+// E-mail: algo@dominio.extensao, sem espaços e sem pontos seguidos. Ex.: contato@empresa.com.br.
+const FORMATO_EMAIL = /^[a-z0-9._%+-]+@[a-z0-9-]+(\.[a-z0-9-]+)*\.[a-z]{2,}$/
+
+export function emailValido(email) {
+  return FORMATO_EMAIL.test(email) && !email.includes('..')
+}
+
+// Por que o valor foi ajustado automaticamente (motivos em constants/validacao.js, MOTIVOS_DE_AJUSTE).
+export function motivoDoAjuste(campo, antes, depois) {
+  const semEspacosExtras = texto(antes)
+  if (semEspacosExtras === depois) return 'Espaços extras' // Ex.: "  Transportes Rápido  ".
+  if (semEspacosExtras.toLowerCase() === depois.toLowerCase()) return 'Maiúsculas e minúsculas' // Ex.: CARLOS LIMA.
+  if (['faturamento_anual', 'data_contratacao', 'servicos_contratados'].includes(campo)) return 'Formato do valor' // Ex.: "R$ 98.000,00".
+  return 'Escrita padronizada' // Ex.: IND. vira Indústria, saude vira Saúde.
+}
 
 // Campos obrigatórios que só precisam estar preenchidos (os outros têm regras próprias abaixo).
 const PREENCHIMENTO_OBRIGATORIO = [
@@ -27,8 +44,8 @@ export function validarLinhas(linhas) {
   const validos = [] // Linhas aprovadas, já padronizadas.
   const invalidos = [] // Resumo das linhas com problema: { numeroLinha, codigo_cliente, problemas }.
   const ocorrencias = [] // Cada problema separado: linha, código, campo, tipo e descrição.
-  const padronizacoes = [] // Valores corrigidos automaticamente: antes e depois.
-  const codigosEncontrados = new Set()
+  const padronizacoes = [] // Valores corrigidos automaticamente: antes, depois e motivo.
+  const primeiraLinhaDoCodigo = new Map() // Código do cliente -> linha em que apareceu pela primeira vez.
 
   linhas.forEach((linha, indice) => {
     const numeroLinha = indice + 2 // Soma 2 porque o Excel começa em 1 e tem cabeçalho.
@@ -45,6 +62,7 @@ export function validarLinhas(linhas) {
       data_contratacao: normalizarData(linha.data_contratacao), // dd/mm/aaaa, '' se vazia ou null se inválida.
       cidade: capitalizar(linha.cidade),
       uf: normalizarUF(linha.uf), // Ex.: sp vira SP.
+      email: normalizarEmail(linha.email), // Ex.: " Contato@Empresa.com.BR " vira contato@empresa.com.br.
       faturamento_anual: normalizarMoeda(linha.faturamento_anual) // Ex.: "R$ 1.850.000,00" vira 1850000.
     }
 
@@ -81,6 +99,11 @@ export function validarLinhas(linhas) {
       registrarProblema('uf', 'Fora do padrão', 'UF deve ter 2 letras (ex.: SP)')
     }
 
+    // E-mail é opcional, mas o preenchido precisa ter formato de e-mail.
+    if (tratada.email && !emailValido(tratada.email)) {
+      registrarProblema('email', 'E-mail inválido', `E-mail "${tratada.email}" não tem formato válido (ex.: contato@empresa.com.br)`)
+    }
+
     const faturamento = tratada.faturamento_anual
     if (faturamento === '' || faturamento === null || faturamento === undefined) {
       registrarProblema('faturamento_anual', 'Campo vazio', 'Faturamento anual está vazio')
@@ -90,17 +113,19 @@ export function validarLinhas(linhas) {
       registrarProblema('faturamento_anual', 'Valor inválido', 'Faturamento anual não pode ser negativo')
     }
 
-    if (tratada.codigo_cliente && codigosEncontrados.has(tratada.codigo_cliente)) {
-      registrarProblema('codigo_cliente', 'Código repetido', 'Código do cliente repetido em outra linha')
+    // Registro duplicado: o mesmo código já apareceu numa linha anterior (a primeira ocorrência continua valendo).
+    if (tratada.codigo_cliente && primeiraLinhaDoCodigo.has(tratada.codigo_cliente)) {
+      registrarProblema('codigo_cliente', 'Código repetido', `Código do cliente repetido (já aparece na linha ${primeiraLinhaDoCodigo.get(tratada.codigo_cliente)})`)
+    } else if (tratada.codigo_cliente) {
+      primeiraLinhaDoCodigo.set(tratada.codigo_cliente, numeroLinha)
     }
-    if (tratada.codigo_cliente) codigosEncontrados.add(tratada.codigo_cliente)
 
     // 3. Registra o que foi corrigido automaticamente (só quando o valor original existia e mudou).
     for (const campo of Object.keys(tratada)) {
       const antes = linha[campo]
       const depois = tratada[campo]
       const mudou = texto(antes) !== '' && depois !== null && !Number.isNaN(depois) && String(antes) !== String(depois)
-      if (mudou) padronizacoes.push({ linha: numeroLinha, campo, antes: String(antes), depois: String(depois) })
+      if (mudou) padronizacoes.push({ linha: numeroLinha, campo, antes: String(antes), depois: String(depois), motivo: motivoDoAjuste(campo, antes, String(depois)) })
     }
 
     // 4. Separa válidas e inválidas.

@@ -20,7 +20,7 @@ export const useUploadStore = defineStore('upload', () => {
   const dadosInvalidos = ref([]) // Guarda as linhas que apresentaram problemas.
   const erros = ref([]) // Guarda mensagens de erro para mostrar ao usuário.
   const ocorrencias = ref([]) // Guarda cada erro separado: linha, campo, tipo e descrição.
-  const padronizacoes = ref([]) // Guarda os valores corrigidos automaticamente (antes e depois).
+  const padronizacoes = ref([]) // Guarda os valores corrigidos automaticamente (antes, depois e motivo).
   const statusValidacao = ref('Aguardando arquivo') // Guarda o estado atual da validação.
   const carregando = ref(false) // Informa se o sistema está processando alguma etapa.
   const historico = ref([]) // Guarda o resumo de cada processamento feito nesta sessão.
@@ -69,6 +69,8 @@ export const useUploadStore = defineStore('upload', () => {
   const errosPorCampo = computed(() => contarPor(ocorrencias.value, item => item.campo)) // Ex.: uf: 2.
 
   const padronizacoesPorCampo = computed(() => contarPor(padronizacoes.value, item => item.campo)) // Ex.: segmento: 5.
+
+  const padronizacoesPorMotivo = computed(() => contarPor(padronizacoes.value, item => item.motivo)) // Ex.: Espaços extras: 2.
 
   const liberada = computed(() => liberacao.value !== null) // Os clientes aprovados já podem aparecer no painel.
 
@@ -277,7 +279,7 @@ export const useUploadStore = defineStore('upload', () => {
     duracaoMs, alteracoes, dadosLiberados, liberacao, mudouDesdeLiberacao,
     quantidadeLinhas, quantidadeValidas, quantidadeInvalidas,
     quantidadeClientes, percentualValido, faturamentoTotal, faturamentoMedio,
-    errosPorTipo, errosPorCampo, padronizacoesPorCampo, falhouLeitura, liberada, quantidadeLiberados,
+    errosPorTipo, errosPorCampo, padronizacoesPorCampo, padronizacoesPorMotivo, falhouLeitura, liberada, quantidadeLiberados,
     registrarArquivo, processarArquivo,
     limparUpload, limparHistorico, corrigirCampo, revalidar, liberarParaPainel, baixarPlanilhaCorrigida
   }

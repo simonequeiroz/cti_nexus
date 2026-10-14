@@ -23,28 +23,30 @@ const DICIONARIO = {
   servicos_contratados: ['texto múltiplo', 'Internet Dedicada;Firewall', 'Vários serviços separados por ";"'],
   data_contratacao: ['data', '15/01/2025', 'Data válida no formato dd/mm/aaaa (ou célula de data do Excel)'],
   cidade: ['texto', 'Campinas', 'Opcional; capitalização corrigida'],
-  uf: ['categoria', 'SP', 'Opcional; se preenchida, 2 letras (sp vira SP)']
+  uf: ['categoria', 'SP', 'Opcional; se preenchida, 2 letras (sp vira SP)'],
+  email: ['texto', 'contato@empresa.com.br', 'Opcional; se preenchido, formato nome@empresa.com.br (maiúsculas e espaços são corrigidos)']
 }
 
 const MODELO = [
-  ['CTI001', 'Metalúrgica Horizonte', 'Ana Souza', 'Indústria', 'A', 1850000, 'Internet Dedicada;Firewall', '15/01/2025', 'Campinas', 'SP'],
-  ['CTI002', 'Comercial Vitória', 'Carlos Lima', 'Comércio', 'B', 780000, 'Link Empresarial', '03/02/2025', 'Hortolândia', 'SP']
+  ['CTI001', 'Metalúrgica Horizonte', 'Ana Souza', 'Indústria', 'A', 1850000, 'Internet Dedicada;Firewall', '15/01/2025', 'Campinas', 'SP', 'financeiro@metalurgicahorizonte.com.br'],
+  ['CTI002', 'Comercial Vitória', 'Carlos Lima', 'Comércio', 'B', 780000, 'Link Empresarial', '03/02/2025', 'Hortolândia', 'SP', 'compras@comercialvitoria.com.br']
 ]
 
 // Erros plantados: variações de segmento, maiúsculas/minúsculas, espaços extras, nível D, código repetido,
-// campos vazios, faturamento em texto e negativo, data que não existe e serviço vazio.
+// campos vazios, faturamento em texto e negativo, data que não existe, serviço vazio e e-mails inválidos
+// (sem domínio, sem extensão e com espaço no meio). E-mail é opcional: linhas sem e-mail continuam válidas.
 const TESTE = [
-  ['CTI001', 'Metalúrgica Paulista', 'Ana Souza', 'industria', 'a', 'R$ 250.000,00', 'Internet Dedicada;Firewall', '15/01/2025', 'Campinas', 'sp'],
-  ['CTI002', 'Mercado Bom Preço', 'CARLOS LIMA', 'COMERCIO', 'B', 'R$ 98.000,00', 'Link Empresarial', '03/02/2025', 'Santos', 'SP'],
-  ['CTI003', 'Clínica Vida', 'Ana Souza', 'saude', 'c', 120000, 'Internet Dedicada ; Backup', '18/02/2025', 'Sorocaba', 'sp'],
+  ['CTI001', 'Metalúrgica Paulista', 'Ana Souza', 'industria', 'a', 'R$ 250.000,00', 'Internet Dedicada;Firewall', '15/01/2025', 'Campinas', 'sp', 'financeiro@metalurgicapaulista.com.br'],
+  ['CTI002', 'Mercado Bom Preço', 'CARLOS LIMA', 'COMERCIO', 'B', 'R$ 98.000,00', 'Link Empresarial', '03/02/2025', 'Santos', 'SP', ' Compras@MercadoBomPreco.com.br '],
+  ['CTI003', 'Clínica Vida', 'Ana Souza', 'saude', 'c', 120000, 'Internet Dedicada ; Backup', '18/02/2025', 'Sorocaba', 'sp', 'contato@clinicavida.com.br'],
   ['CTI004', '  Transportes Rápido  ', 'Bruno Alves', 'servicos', 'B', 'R$ 175.500,00', 'MPLS', '05/03/2025', 'Jundiaí', 'SP'],
   ['cti005', 'PLÁSTICOS NORTE', 'Carlos Lima', 'ind.', 'A', 'R$ 410.000,00', 'MPLS;Firewall;Cloud', '14/03/2025', 'MANAUS', 'am'],
-  ['CTI006', '', 'Bruno Alves', 'Comércio', 'B', 'R$ 64.000,00', 'Link Empresarial', '02/04/2025', 'Campinas', 'SP'],
-  ['CTI007', 'Padaria Central', 'Ana Souza', 'comércio', 'D', 'R$ 38.000,00', 'Link Empresarial', '21/04/2025', 'Santos', 'SP'],
-  ['CTI002', 'Mercado Bom Preço Filial', 'Carlos Lima', 'Comercio', 'B', 'R$ 52.000,00', 'Link Empresarial', '09/05/2025', 'Santos', 'SP'],
-  ['CTI008', 'Hospital São Lucas', '', 'Saúde', 'A', 'R$ 890.000,00', 'Internet Dedicada;Firewall;Backup', '28/05/2025', 'Ribeirão Preto', 'SP'],
+  ['CTI006', '', 'Bruno Alves', 'Comércio', 'B', 'R$ 64.000,00', 'Link Empresarial', '02/04/2025', 'Campinas', 'SP', 'contato@'],
+  ['CTI007', 'Padaria Central', 'Ana Souza', 'comércio', 'D', 'R$ 38.000,00', 'Link Empresarial', '21/04/2025', 'Santos', 'SP', 'padaria.central@gmail'],
+  ['CTI002', 'Mercado Bom Preço Filial', 'Carlos Lima', 'Comercio', 'B', 'R$ 52.000,00', 'Link Empresarial', '09/05/2025', 'Santos', 'SP', 'compras@mercadobompreco.com.br'],
+  ['CTI008', 'Hospital São Lucas', '', 'Saúde', 'A', 'R$ 890.000,00', 'Internet Dedicada;Firewall;Backup', '28/05/2025', 'Ribeirão Preto', 'SP', 'ti@saolucas.org.br'],
   ['CTI009', 'Auto Peças Silva', 'Bruno Alves', 'Comércio', 'C', 'cem mil', 'Internet Dedicada', '11/06/2025', 'Bauru', 'sp'],
-  ['CTI010', 'Têxtil Aurora', 'Ana Souza', 'INDÚSTRIA', 'b', '-R$ 5.000,00', 'MPLS', '25/06/2025', 'Americana', ''],
+  ['CTI010', 'Têxtil Aurora', 'Ana Souza', 'INDÚSTRIA', 'b', '-R$ 5.000,00', 'MPLS', '25/06/2025', 'Americana', '', 'financeiro textil@aurora.com.br'],
   ['', 'Loja Sem Código', 'Carlos Lima', 'Comércio', 'C', 'R$ 21.000,00', 'Link Empresarial', '07/07/2025', 'Campinas', 'SP'],
   ['CTI011', 'Laboratório Alfa', 'Ana Souza', 'Saude', 'B', '', 'Internet Dedicada', '19/07/2025', 'Campinas', 'SP'],
   ['CTI012', 'Software Nova Geração', 'Bruno Alves', 'tecnologia', 'A', 'R$ 1.320.000,00', 'Cloud;Firewall', '31/02/2026', 'São Paulo', 'SP'],
