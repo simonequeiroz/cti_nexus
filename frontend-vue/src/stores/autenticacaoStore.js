@@ -71,6 +71,22 @@ export const useAutenticacaoStore = defineStore('auth', () => {
     return true
   }
 
+  async function loginDemonstracao(id) { // Botões de demonstração do login: entra pelo id, sem e-mail e senha.
+    // TODO: some junto com o login de demonstração quando o backend existir.
+    erro.value = ''
+    carregando.value = true
+    await new Promise(resolve => setTimeout(resolve, 600))
+    carregando.value = false
+
+    usuario.value = sincronizar({ id })
+    if (!usuario.value) {
+      erro.value = 'Este acesso de demonstração foi desativado na tela Usuários.'
+      return false
+    }
+    guardarSessao()
+    return true
+  }
+
   function guardarSessao() {
     try {
       sessionStorage.setItem(CHAVE_SESSAO, JSON.stringify(usuario.value))
@@ -96,6 +112,6 @@ export const useAutenticacaoStore = defineStore('auth', () => {
   return {
     usuario, carregando, erro,
     estaAutenticado, primeiroNome, nomeDoPapel, telaDeEntrada,
-    pode, login, logout, atualizarSessao
+    pode, login, loginDemonstracao, logout, atualizarSessao
   }
 })

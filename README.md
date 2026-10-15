@@ -96,12 +96,13 @@ Cada tela tem uma função, para não repetir informação.
 | Tela | Endereço | Para que serve |
 |---|---|---|
 | Página inicial | `/` | Apresentação do sistema |
-| Login | `#login` | Entrada com e-mail e senha. "Esqueci minha senha" e "Não tem acesso?" orientam a falar com o administrador |
+| Login | `#login` | Entrada com e-mail e senha. "Esqueci minha senha" orienta a falar com o administrador; "Não tem acesso? Pedir acesso" leva ao pedido de acesso |
+| Pedir acesso | `#cadastro` | Formulário aberto (nome, e-mail, cargo, senha) que vira um pedido; só entra depois que o administrador aprovar |
 | **Upload** (Passo 1) | `#upload` | Enviar a planilha, ver o resultado rápido, os clientes aprovados e o histórico de envios (quem enviou, quando e a situação) |
 | **Validação** (Passo 2) | `#validacao` | Único lugar para ver e corrigir os erros linha a linha, com registro de quem alterou o quê. Também mostra os ajustes automáticos, baixa a planilha corrigida e **libera os clientes aprovados para o painel** |
 | **Relatório** (Passo 3) | `#relatorio` | Documento de qualidade da planilha, para ler, imprimir ou exportar a lista de erros |
 | **Dashboard** (Passo 4) | `#dashboard` | Análise dos clientes **liberados**, com os 3 principais destaques no topo e filtros por segmento e nível |
-| Usuários | `#usuarios` | Cadastro de usuários (só administrador) |
+| Usuários | `#usuarios` | Pedidos de acesso e cadastro de usuários (só administrador) |
 
 ### Gráficos do Dashboard
 
@@ -176,7 +177,8 @@ O sistema lida com dados sensíveis de clientes e faturamento, então o acesso �
 - Se alguém digitar o endereço de uma tela sem permissão, volta para a sua tela inicial.
 
 **Cadastro de usuários:**
-- Quem cadastra é o **administrador**, que escolhe o papel. Não existe "criar conta" aberto, porque ninguém pode escolher o próprio papel.
+- Quem define o papel é sempre o **administrador**: ninguém escolhe o próprio papel.
+- Dois caminhos: o administrador cadastra direto na tela Usuários, **ou** a pessoa clica em "Pedir acesso" no login e preenche nome, e-mail e senha. O pedido fica pendente (sem papel e sem entrar) até o administrador escolher o papel e aprovar; se recusar, o pedido é removido.
 - Usuários são **desativados, nunca apagados**: o histórico precisa continuar apontando para quem enviou cada planilha.
 - O sistema nunca fica sem um administrador ativo, e ninguém desativa a si mesmo.
 
@@ -210,8 +212,10 @@ CREATE TABLE usuario (
   nome       VARCHAR(100) NOT NULL,
   email      VARCHAR(120) UNIQUE NOT NULL,
   senha_hash VARCHAR(100) NOT NULL,        -- BCrypt, nunca a senha pura
-  papel_id   INT NOT NULL REFERENCES papel(id),
-  ativo      BOOLEAN NOT NULL DEFAULT TRUE
+  papel_id   INT REFERENCES papel(id),     -- NULL enquanto o pedido de acesso está pendente
+  cargo      VARCHAR(100),                 -- informado no pedido de acesso
+  situacao   VARCHAR(20) NOT NULL DEFAULT 'ativo', -- pendente, ativo, desativado
+  criado_em  TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
 -- Trilha de auditoria: quem enviou, quando e o resultado de cada planilha.

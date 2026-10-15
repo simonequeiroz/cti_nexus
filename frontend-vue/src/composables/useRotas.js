@@ -2,8 +2,8 @@ import { ref, onMounted, onUnmounted } from 'vue'
 import { useAutenticacaoStore } from '../stores/autenticacaoStore'
 import { PERMISSAO_DA_TELA } from '../constants/permissoes'
 
-// Navegação simples pelo endereço (#login, #upload, #validacao, #relatorio, #dashboard, #usuarios). O resto abre a landing page.
-// As telas internas só abrem para quem fez login e tem a permissão da tela (constants/permissoes.js).
+// Navegação simples pelo endereço (#login, #cadastro, #upload, #validacao, #relatorio, #dashboard, #usuarios). O resto abre a landing page.
+// #login e #cadastro (pedido de acesso) são abertas. As telas internas só abrem para quem fez login e tem a permissão da tela (constants/permissoes.js).
 
 const rotaAtual = ref(window.location.hash) // Compartilhada por todos os componentes.
 
@@ -25,7 +25,7 @@ export function iniciarRotas() {
     const permissao = PERMISSAO_DA_TELA[rota]
     if (permissao && !auth.estaAutenticado) return irPara('#login')
     if (permissao && !auth.pode(permissao)) return irPara(auth.telaDeEntrada) // Ex.: gestor tentando abrir #upload.
-    if (rota === '#login' && auth.estaAutenticado) return irPara(auth.telaDeEntrada) // Já logado não precisa do login.
+    if (['#login', '#cadastro'].includes(rota) && auth.estaAutenticado) return irPara(auth.telaDeEntrada) // Já logado não precisa do login.
 
     rotaAtual.value = rota
   }

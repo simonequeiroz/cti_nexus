@@ -47,37 +47,36 @@
     </p>
   </div>
 
-  <!-- Não existe "criar conta": só o administrador cadastra usuários e escolhe o papel de cada um. -->
+  <!-- Não é um "criar conta" aberto: vira um pedido, e só entra depois que o administrador aprovar e escolher o papel. -->
   <p class="mt-6 pt-6 border-t border-blue-secondary/70 text-sm text-center text-regular">
-    Não tem acesso? Peça ao administrador da sua equipe para cadastrar você.
+    Não tem acesso? <a href="#cadastro" class="font-semibold text-blue-primary hover:underline">Pedir acesso</a>
   </p>
 
-  <!-- Acesso de demonstração para a apresentação: recolhido, e desligado com VITE_MOSTRAR_DEMO=false. -->
+  <!-- Acesso de demonstração para a apresentação: recolhido, e desligado com VITE_MOSTRAR_DEMO=false.
+       Entra pelo id do usuário de demonstração, então continua funcionando mesmo se o e-mail ou a senha dele mudar na tela Usuários. -->
   <details v-if="MOSTRAR_DEMO" class="mt-6 text-xs text-regular">
     <summary class="cursor-pointer text-center hover:text-blue-primary">Usar acesso de demonstração</summary>
-    <ul class="mt-3 flex flex-col gap-2">
-      <li v-for="demo in USUARIOS_DEMO" :key="demo.email">
-        <button
-          type="button"
-          class="w-full flex items-center justify-between gap-3 rounded-lg border border-blue-secondary px-3 py-2 text-left hover:border-blue-primary hover:bg-blue-primary/5 transition-colors"
-          :disabled="auth.carregando"
-          @click="entrarComDemo(demo)"
-        >
-          <span class="font-semibold text-black-dark">{{ PAPEIS[demo.papel].nome }}</span>
-          <span>{{ demo.nome }}</span>
-        </button>
-      </li>
-    </ul>
-    <p class="mt-2 text-center">Senha de todos: <span class="font-mono">123456</span></p>
+    <div class="mt-3 flex flex-wrap justify-center gap-2">
+      <button
+        v-for="demo in demonstracao"
+        :key="demo.id"
+        type="button"
+        class="rounded-full border border-blue-secondary px-3 py-1.5 font-semibold text-black-dark hover:border-blue-primary hover:bg-blue-primary/5 transition-colors"
+        :disabled="auth.carregando"
+        @click="entrarComDemo(demo.id)"
+      >
+        {{ PAPEIS[demo.papel].nome }}
+      </button>
+    </div>
   </details>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import CampoTexto from '../ui/CampoTexto.vue'
 import BotaoBase from '../ui/BotaoBase.vue'
 import { useAutenticacaoStore } from '../../stores/autenticacaoStore'
-import { USUARIOS_DEMO } from '../../stores/usuariosStore'
+import { USUARIOS_DEMO, useUsuariosStore } from '../../stores/usuariosStore'
 import { useRotas } from '../../composables/useRotas'
 import { PAPEIS } from '../../constants/permissoes'
 
@@ -96,9 +95,13 @@ async function entrar() {
   if (deuCerto) irPara(auth.telaDeEntrada) // Analista e administrador vão para o upload; gestor, para o painel.
 }
 
-function entrarComDemo(demo) { // Preenche e já entra, em um clique.
-  email.value = demo.email
-  senha.value = demo.senha
-  entrar()
+// Usuários de demonstração como estão agora no cadastro (o papel pode ter mudado); os desativados não aparecem.
+const demonstracao = computed(() => {
+  const usuarios = useUsuariosStore().usuarios
+  return USUARIOS_DEMO.map(demo => usuarios.find(u => u.id === demo.id)).filter(u => u?.ativo && PAPEIS[u.papel])
+})
+
+async function entrarComDemo(id) { // Um clique, sem digitar e-mail e senha.
+  if (await auth.loginDemonstracao(id)) irPara(auth.telaDeEntrada)
 }
 </script>

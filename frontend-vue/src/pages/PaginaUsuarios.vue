@@ -1,4 +1,4 @@
-<!-- Tela de usuários (só administrador): cadastro, edição do papel e desativação de acesso. -->
+<!-- Tela de usuários (só administrador): pedidos de acesso, cadastro, edição do papel e desativação de acesso. -->
 <template>
   <LayoutSistema>
     <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-6">
@@ -11,6 +11,8 @@
     <p v-if="aviso.texto" role="status" class="mt-6 rounded-lg border px-4 py-2.5 text-sm" :class="aviso.erro ? 'bg-orange/10 border-orange/30 text-orange-dark' : 'bg-green/10 border-green/30 text-green-dark'">
       {{ aviso.texto }}
     </p>
+
+    <PedidosAcesso v-if="store.pedidosPendentes.length" class="mt-6" @aviso="mostrarAviso" />
 
     <!-- :key recria o formulário ao trocar de usuário, para não levar dados de um para o outro. -->
     <FormularioUsuario
@@ -34,6 +36,7 @@ import IntroducaoPagina from '../components/layout/IntroducaoPagina.vue'
 import BotaoBase from '../components/ui/BotaoBase.vue'
 import FormularioUsuario from '../components/usuarios/FormularioUsuario.vue'
 import TabelaUsuarios from '../components/usuarios/TabelaUsuarios.vue'
+import PedidosAcesso from '../components/usuarios/PedidosAcesso.vue'
 import { useUsuariosStore } from '../stores/usuariosStore'
 import { useAutenticacaoStore } from '../stores/autenticacaoStore'
 
@@ -55,6 +58,10 @@ function concluir(mensagem) {
   if (emEdicao.value?.id === auth.usuario?.id) auth.atualizarSessao(emEdicao.value) // Nome novo aparece na trilha e no cabeçalho.
   formularioAberto.value = false
   Object.assign(aviso, { texto: mensagem, erro: false })
+}
+
+function mostrarAviso(novoAviso) {
+  Object.assign(aviso, novoAviso)
 }
 
 function alternarAtivo(usuario) {

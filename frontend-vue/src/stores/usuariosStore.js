@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import { validarUsuario, ultimoAdministrador } from '../utils/validacaoUsuario'
+import { PAPEIS } from '../constants/permissoes'
+import { validarUsuario, validarPedidoAcesso, ultimoAdministrador } from '../utils/validacaoUsuario'
 
 // Usuários de demonstração (um por papel) enquanto o backend Java não existe.
 // Nome de pessoa, não de papel: a tela mostra os dois juntos ("Rita Andrade · Administrador").
@@ -32,11 +33,16 @@ function lerUsuarios() {
 export const useUsuariosStore = defineStore('usuarios', () => {
   // ===== STATE =====
 
-  const usuarios = ref(lerUsuarios()) // Todos os usuários cadastrados.
+  // Todos os usuários cadastrados, incluindo os pedidos de acesso feitos no login (pendente: true, sem papel, sem acesso).
+  const usuarios = ref(lerUsuarios())
 
   // ===== GETTERS =====
 
-  const usuariosOrdenados = computed(() => [...usuarios.value].sort((a, b) => a.nome.localeCompare(b.nome)))
+  const cadastrados = computed(() => usuarios.value.filter(u => !u.pendente))
+
+  const usuariosOrdenados = computed(() => [...cadastrados.value].sort((a, b) => a.nome.localeCompare(b.nome)))
+
+  const pedidosPendentes = computed(() => usuarios.value.filter(u => u.pendente)) // Mais antigo primeiro.
 
   const quantidadeAtivos = computed(() => usuarios.value.filter(u => u.ativo).length)
 
@@ -53,6 +59,7 @@ export const useUsuariosStore = defineStore('usuarios', () => {
   function autenticar(email, senha) { // Usado pelo login. Devolve o usuário ou o motivo da recusa.
     const usuario = usuarios.value.find(u => u.email === email.trim().toLowerCase() && u.senha === senha)
     if (!usuario) return { erro: 'E-mail ou senha incorretos.' }
+    if (usuario.pendente) return { erro: 'Seu pedido de acesso ainda não foi aprovado. Aguarde o administrador.' }
     if (!usuario.ativo) return { erro: 'Este acesso foi desativado. Fale com o administrador.' }
     return { usuario }
   }
@@ -72,6 +79,38 @@ export const useUsuariosStore = defineStore('usuarios', () => {
     })
     salvar()
     return {}
+  }
+
+  function pedirAcesso(dados) { // Feito na tela de login, sem estar logado. Devolve os erros por campo ({} quando deu certo).
+    const erros = validarPedidoAcesso(dados, usuarios.value)
+    if (Object.keys(erros).length) return erros
+
+    usuarios.value.push({
+      id: Math.max(0, ...usuarios.value.map(u => u.id)) + 1,
+      nome: dados.nome.trim(),
+      email: dados.email.trim().toLowerCase(),
+      senha: dados.senha,
+      cargo: dados.cargo?.trim() ?? '', // Ajuda o administrador a escolher o papel.
+      papel: null, // Ninguém escolhe o próprio papel.
+      ativo: false,
+      pendente: true,
+      criadoEm: new Date().toISOString()
+    })
+    salvar()
+    return {}
+  }
+
+  function aprovarPedido(id, papel) { // O administrador escolhe o papel e libera a entrada.
+    const pedido = usuarios.value.find(u => u.id === id && u.pendente)
+    if (!PAPEIS[papel]) return 'Escolha o papel antes de aprovar.'
+    Object.assign(pedido, { papel, ativo: true, pendente: false })
+    salvar()
+    return ''
+  }
+
+  function recusarPedido(id) { // Remove o pedido: a pessoa nunca teve acesso, então não há histórico a guardar.
+    usuarios.value = usuarios.value.filter(u => !(u.id === id && u.pendente))
+    salvar()
   }
 
   function editar(id, dados) { // Muda nome, e-mail, papel e (se preenchida) a senha.
@@ -98,7 +137,7 @@ export const useUsuariosStore = defineStore('usuarios', () => {
 
   return {
     usuarios,
-    usuariosOrdenados, quantidadeAtivos,
-    autenticar, cadastrar, editar, alternarAtivo
+    cadastrados, usuariosOrdenados, pedidosPendentes, quantidadeAtivos,
+    autenticar, cadastrar, pedirAcesso, aprovarPedido, recusarPedido, editar, alternarAtivo
   }
 })

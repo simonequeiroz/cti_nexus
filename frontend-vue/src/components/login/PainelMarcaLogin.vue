@@ -27,7 +27,7 @@
       </ol>
     </div>
 
-    <p class="relative text-xs text-black-light font-mono">CTI Provedor · CTI Insights</p>
+    <p class="relative text-xs text-black-light font-mono">CTI Nexus</p>
   </aside>
 </template>
 

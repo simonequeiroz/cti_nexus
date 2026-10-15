@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { validarUsuario, ultimoAdministrador } from './validacaoUsuario'
+import { validarUsuario, validarPedidoAcesso, ultimoAdministrador } from './validacaoUsuario'
 
 const USUARIOS = [
   { id: 1, nome: 'Rita Andrade', email: 'admin@ctinexus.com', papel: 'administrador', ativo: true },
@@ -35,6 +35,19 @@ describe('validarUsuario', () => {
   it('na edição, o próprio e-mail não conta como repetido e a senha pode ficar em branco', () => {
     const edicao = { nome: 'Ana Lima', email: 'analista@ctinexus.com', senha: '', confirmacao: '', papel: 'analista' }
     expect(validarUsuario(edicao, USUARIOS, 2)).toEqual({})
+  })
+})
+
+describe('validarPedidoAcesso', () => {
+  const { papel, ...PEDIDO } = NOVO
+
+  it('aceita o pedido sem papel (quem escolhe é o administrador)', () => {
+    expect(validarPedidoAcesso(PEDIDO, USUARIOS)).toEqual({})
+  })
+
+  it('exige nome, e-mail e senha, e recusa e-mail já usado', () => {
+    expect(Object.keys(validarPedidoAcesso({}, USUARIOS)).sort()).toEqual(['email', 'nome', 'senha'])
+    expect(validarPedidoAcesso({ ...PEDIDO, email: 'admin@ctinexus.com' }, USUARIOS).email).toMatch(/Já existe/)
   })
 })
 

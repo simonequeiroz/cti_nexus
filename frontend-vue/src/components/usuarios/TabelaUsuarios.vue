@@ -1,6 +1,6 @@
 <!-- Lista de usuários com papel, situação e as ações Editar e Desativar/Reativar. -->
 <template>
-  <CartaoPainel titulo="Usuários cadastrados" :descricao="`${store.quantidadeAtivos} com acesso ativo de ${store.usuarios.length}.`">
+  <CartaoPainel titulo="Usuários cadastrados" :descricao="`${store.quantidadeAtivos} com acesso ativo de ${store.cadastrados.length}.`">
     <TabelaDados legenda="Usuários do sistema" :colunas="COLUNAS">
       <tr v-for="usuario in store.usuariosOrdenados" :key="usuario.id" :class="{ 'text-regular': !usuario.ativo }">
         <th scope="row" class="pl-6 pr-4 py-3 text-left font-normal">
