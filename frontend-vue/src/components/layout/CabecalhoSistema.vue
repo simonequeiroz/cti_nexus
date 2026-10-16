@@ -10,11 +10,16 @@
           <li v-for="item in menu" :key="item.link" class="flex-1 sm:flex-none">
             <a
               :href="'#' + item.link"
-              class="block px-1 sm:px-3 py-2 rounded-lg text-center whitespace-nowrap transition-colors"
+              class="relative block px-1 sm:px-3 py-2 rounded-lg text-center whitespace-nowrap transition-colors"
               :class="rota.path === item.link ? 'bg-blue-primary/10 text-blue-primary' : 'text-regular hover:text-blue-primary'"
               :aria-current="rota.path === item.link ? 'page' : undefined"
             >
               {{ item.rotulo }}
+              <!-- Pedidos de acesso esperando aprovação, ao lado de "Usuários". No celular fica no canto, sem ocupar espaço no menu. -->
+              <template v-if="item.link === '/usuarios' && pedidos">
+                <span class="absolute -top-1 right-0 sm:static sm:ml-1 inline-grid place-items-center min-w-4 h-4 sm:min-w-5 sm:h-5 px-1 sm:px-1.5 rounded-full bg-blue-primary text-[10px] sm:text-xs leading-none text-white align-middle" aria-hidden="true">{{ pedidos }}</span>
+                <span class="sr-only">({{ pedidos }} {{ pedidos === 1 ? 'pedido de acesso aguardando' : 'pedidos de acesso aguardando' }})</span>
+              </template>
             </a>
           </li>
         </ul>
@@ -47,6 +52,7 @@ import { computed } from 'vue'
 import LogoMarca from '../ui/LogoMarca.vue'
 import BotaoBase from '../ui/BotaoBase.vue'
 import { useAutenticacaoStore } from '../../stores/autenticacaoStore'
+import { useUsuariosStore } from '../../stores/usuariosStore'
 import { useRoute, useRouter } from 'vue-router'
 import { PERMISSAO_DA_TELA } from '../../constants/permissoes'
 
@@ -61,6 +67,9 @@ const MENU = [
 const auth = useAutenticacaoStore()
 const rota = useRoute() // Tela aberta agora (rota.path, ex.: '/upload').
 const router = useRouter()
+
+const usuarios = useUsuariosStore()
+const pedidos = computed(() => usuarios.pedidosPendentes.length) // Pedidos de acesso esperando o administrador.
 
 const menu = computed(() => MENU.filter(item => auth.pode(PERMISSAO_DA_TELA[item.link]))) // Só as telas que o papel pode abrir.
 

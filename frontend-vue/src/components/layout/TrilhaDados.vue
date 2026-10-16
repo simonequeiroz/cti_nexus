@@ -83,12 +83,19 @@
           class="flex items-center gap-3 rounded-2xl p-2 text-sm font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-blue-primary"
           :class="[rota.path === '/usuarios' ? 'bg-white/10 text-white' : 'text-white/70 hover:bg-white/5 hover:text-white', { 'justify-center': recolhida }]"
           :aria-current="rota.path === '/usuarios' ? 'page' : undefined"
-          :title="recolhida ? 'Usuários' : undefined"
+          :title="recolhida ? `Usuários${pedidos ? ` (${textoPedidos})` : ''}` : undefined"
         >
-          <svg class="w-5 h-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
-          </svg>
+          <span class="relative shrink-0">
+            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
+            </svg>
+            <!-- Recolhida: o número fica no canto do ícone. -->
+            <span v-if="pedidos && recolhida" class="absolute -top-2 -right-2.5 min-w-4 h-4 px-1 grid place-items-center rounded-full bg-blue-primary text-[10px] leading-none text-white" aria-hidden="true">{{ pedidos }}</span>
+          </span>
           <span :class="{ 'sr-only': recolhida }">Usuários</span>
+          <!-- Pedidos de acesso esperando aprovação (só o administrador vê este link). -->
+          <span v-if="pedidos && !recolhida" class="ml-auto min-w-5 h-5 px-1.5 grid place-items-center rounded-full bg-blue-primary text-xs text-white" aria-hidden="true">{{ pedidos }}</span>
+          <span v-if="pedidos" class="sr-only">({{ textoPedidos }})</span>
         </a>
 
         <div class="flex items-center rounded-2xl bg-white/10 backdrop-blur-sm" :class="recolhida ? 'flex-col gap-2 p-2' : 'gap-3 p-2'">
@@ -128,6 +135,7 @@ import LogoMarca from '../ui/LogoMarca.vue'
 import FundoNeural from '../ui/FundoNeural.vue'
 import { useAutenticacaoStore } from '../../stores/autenticacaoStore'
 import { useUploadStore } from '../../stores/uploadStore'
+import { useUsuariosStore } from '../../stores/usuariosStore'
 import { useRoute, useRouter } from 'vue-router'
 import { useMenuLateral } from '../../composables/useMenuLateral'
 import { PERMISSAO_DA_TELA } from '../../constants/permissoes'
@@ -137,6 +145,11 @@ const store = useUploadStore()
 const rota = useRoute() // Tela aberta agora (rota.path, ex.: '/upload').
 const router = useRouter()
 const { recolhida, alternar } = useMenuLateral()
+
+// Pedidos de acesso esperando o administrador: aparecem como um número ao lado de "Usuários".
+const usuarios = useUsuariosStore()
+const pedidos = computed(() => usuarios.pedidosPendentes.length)
+const textoPedidos = computed(() => `${pedidos.value} ${pedidos.value === 1 ? 'pedido de acesso aguardando' : 'pedidos de acesso aguardando'}`)
 
 const temDados = computed(() => store.quantidadeLinhas > 0) // O dado já saiu do upload e seguiu pela trilha.
 
