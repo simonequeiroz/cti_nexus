@@ -45,10 +45,10 @@
 
         <!-- Próximo passo: corrigir se houver erro; senão, revisar e liberar para o painel (na Validação). -->
         <div class="mt-6 flex flex-wrap gap-3">
-          <BotaoBase v-if="invalidas" href="#validacao">Corrigir {{ invalidas }} {{ invalidas === 1 ? 'linha' : 'linhas' }} →</BotaoBase>
-          <BotaoBase v-else-if="!store.liberada" href="#validacao">Revisar e liberar →</BotaoBase>
-          <BotaoBase v-else href="#dashboard">Ver painel →</BotaoBase>
-          <BotaoBase href="#relatorio" variante="secundario">Ver relatório</BotaoBase>
+          <BotaoBase v-if="invalidas" href="#/validacao">Corrigir {{ invalidas }} {{ invalidas === 1 ? 'linha' : 'linhas' }} →</BotaoBase>
+          <BotaoBase v-else-if="!store.liberada" href="#/validacao">Revisar e liberar →</BotaoBase>
+          <BotaoBase v-else href="#/dashboard">Ver painel →</BotaoBase>
+          <BotaoBase href="#/relatorio" variante="secundario">Ver relatório</BotaoBase>
         </div>
       </template>
     </div>

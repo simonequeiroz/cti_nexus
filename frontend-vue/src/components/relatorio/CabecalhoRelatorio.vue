@@ -24,7 +24,7 @@
     <div class="flex flex-wrap gap-3 print:hidden">
       <BotaoBase variante="secundario" :disabled="!store.ocorrencias.length" @click="emit('exportar')">Baixar lista de erros</BotaoBase>
       <BotaoBase variante="secundario" @click="emit('imprimir')">Imprimir</BotaoBase>
-      <BotaoBase v-if="auth.pode('enviar_planilha')" href="#upload">Enviar outra planilha</BotaoBase>
+      <BotaoBase v-if="auth.pode('enviar_planilha')" href="#/upload">Enviar outra planilha</BotaoBase>
     </div>
   </div>
 </template>

@@ -21,15 +21,15 @@ describe('níveis de acesso', () => {
   })
 
   it('cada papel começa na sua tela', () => {
-    expect(telaInicial('administrador')).toBe('#upload')
-    expect(telaInicial('analista')).toBe('#upload')
-    expect(telaInicial('gestor')).toBe('#dashboard')
+    expect(telaInicial('administrador')).toBe('/upload')
+    expect(telaInicial('analista')).toBe('/upload')
+    expect(telaInicial('gestor')).toBe('/dashboard')
   })
 
   it('papel desconhecido não tem acesso a nada', () => {
     expect(temPermissao('visitante', 'ver_painel')).toBe(false)
     expect(temPermissao(undefined, 'ver_painel')).toBe(false)
-    expect(telaInicial(undefined)).toBe('#login')
+    expect(telaInicial(undefined)).toBe('/login')
   })
 
   it('todas as permissões dos papéis existem na lista', () => {

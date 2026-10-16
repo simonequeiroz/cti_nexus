@@ -96,13 +96,13 @@ Cada tela tem uma função, para não repetir informação.
 | Tela | Endereço | Para que serve |
 |---|---|---|
 | Página inicial | `/` | Apresentação do sistema |
-| Login | `#login` | Entrada com e-mail e senha. "Esqueci minha senha" orienta a falar com o administrador; "Não tem acesso? Pedir acesso" leva ao pedido de acesso |
-| Pedir acesso | `#cadastro` | Formulário aberto (nome, e-mail, cargo, senha) que vira um pedido; só entra depois que o administrador aprovar |
-| **Upload** (Passo 1) | `#upload` | Enviar a planilha, ver o resultado rápido, os clientes aprovados e o histórico de envios (quem enviou, quando e a situação) |
-| **Validação** (Passo 2) | `#validacao` | Único lugar para ver e corrigir os erros linha a linha, com registro de quem alterou o quê. Também mostra os ajustes automáticos, baixa a planilha corrigida e **libera os clientes aprovados para o painel** |
-| **Relatório** (Passo 3) | `#relatorio` | Documento de qualidade da planilha, para ler, imprimir ou exportar a lista de erros |
-| **Dashboard** (Passo 4) | `#dashboard` | Análise dos clientes **liberados**, com os 3 principais destaques no topo e filtros por segmento e nível |
-| Usuários | `#usuarios` | Pedidos de acesso e cadastro de usuários (só administrador) |
+| Login | `#/login` | Entrada com e-mail e senha. "Esqueci minha senha" orienta a falar com o administrador; "Não tem acesso? Pedir acesso" leva ao pedido de acesso |
+| Pedir acesso | `#/cadastro` | Formulário aberto (nome, e-mail, cargo, senha) que vira um pedido; só entra depois que o administrador aprovar |
+| **Upload** (Passo 1) | `#/upload` | Enviar a planilha, ver o resultado rápido, os clientes aprovados e o histórico de envios (quem enviou, quando e a situação) |
+| **Validação** (Passo 2) | `#/validacao` | Único lugar para ver e corrigir os erros linha a linha, com registro de quem alterou o quê. Também mostra os ajustes automáticos, baixa a planilha corrigida e **libera os clientes aprovados para o painel** |
+| **Relatório** (Passo 3) | `#/relatorio` | Documento de qualidade da planilha, para ler, imprimir ou exportar a lista de erros |
+| **Dashboard** (Passo 4) | `#/dashboard` | Análise dos clientes **liberados**, com os 3 principais destaques no topo e filtros por segmento e nível |
+| Usuários | `#/usuarios` | Pedidos de acesso e cadastro de usuários (só administrador) |
 
 ### Gráficos do Dashboard
 
@@ -246,12 +246,14 @@ cti_nexus/
 │   ├── public/            # Planilha modelo e planilha de teste
 │   ├── scripts/           # Gerador das planilhas (npm run planilhas)
 │   └── src/
-│       ├── pages/         # Uma página por tela (PaginaUpload, PaginaDashboard...)
+│       ├── views/         # Uma página por tela (PaginaUpload, PaginaDashboard...)
+│       ├── router/        # Vue Router: endereços das telas e proteção por login e permissão
+│       ├── services/      # api.js: comunicação com o back-end (axios)
 │       ├── components/    # Peças de cada tela + ui/ (peças reutilizáveis)
 │       ├── stores/        # Estado com Pinia: autenticação, upload e usuários
 │       ├── utils/         # Regras em funções puras: leitura, validação, estatística
 │       ├── constants/     # Listas fixas: regras, permissões, cores
-│       └── composables/   # Rotas e menu lateral
+│       └── composables/   # Menu lateral recolhível
 ├── backend-java/          # API Spring Boot (planejado)
 ├── analytics-python/      # Limpeza e análise com Pandas (planejado)
 ├── database/              # schema.sql (planejado)
@@ -285,6 +287,6 @@ Os testes são feitos com Vitest (`npm test` dentro de `frontend-vue`) e cobrem:
    - autenticação com Spring Security + JWT e senha com BCrypt;
    - validação no padrão DTO, Service e Controller.
 2. **Banco** PostgreSQL no Neon, com o modelo acima. Com ele, o "L" do ETL passa a existir: gravar os dados aprovados e o histórico.
-3. **Integração do front com a API** usando axios, e migração da navegação para o Vue Router.
+3. **Integração do front com a API**: o axios (`src/services/api.js`) e o Vue Router já estão no projeto; falta trocar o login e o cadastro de demonstração pelas chamadas ao Spring.
 4. **Análise em Python** (Pandas + Matplotlib) a partir dos dados do banco.
 5. **Publicação** na Vercel (front) e na Render (back).

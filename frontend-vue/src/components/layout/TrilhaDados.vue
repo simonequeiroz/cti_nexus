@@ -42,7 +42,7 @@
             v-for="(etapa, indice) in etapas"
             :key="etapa.icone"
             v-bind="etapa"
-            :ativa="etapa.link === rotaAtual"
+            :ativa="etapa.link === rota.path"
             :ultima="indice === etapas.length - 1"
             :ligacao-acesa="temDados"
             :recolhida="recolhida"
@@ -79,10 +79,10 @@
         <!-- Administração fica fora da trilha do dado: não é uma etapa do processamento. -->
         <a
           v-if="auth.pode('gerenciar_usuarios')"
-          href="#usuarios"
+          href="#/usuarios"
           class="flex items-center gap-3 rounded-2xl p-2 text-sm font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-blue-primary"
-          :class="[rotaAtual === '#usuarios' ? 'bg-white/10 text-white' : 'text-white/70 hover:bg-white/5 hover:text-white', { 'justify-center': recolhida }]"
-          :aria-current="rotaAtual === '#usuarios' ? 'page' : undefined"
+          :class="[rota.path === '/usuarios' ? 'bg-white/10 text-white' : 'text-white/70 hover:bg-white/5 hover:text-white', { 'justify-center': recolhida }]"
+          :aria-current="rota.path === '/usuarios' ? 'page' : undefined"
           :title="recolhida ? 'Usuários' : undefined"
         >
           <svg class="w-5 h-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -128,13 +128,14 @@ import LogoMarca from '../ui/LogoMarca.vue'
 import FundoNeural from '../ui/FundoNeural.vue'
 import { useAutenticacaoStore } from '../../stores/autenticacaoStore'
 import { useUploadStore } from '../../stores/uploadStore'
-import { useRotas } from '../../composables/useRotas'
+import { useRoute, useRouter } from 'vue-router'
 import { useMenuLateral } from '../../composables/useMenuLateral'
 import { PERMISSAO_DA_TELA } from '../../constants/permissoes'
 
 const auth = useAutenticacaoStore()
 const store = useUploadStore()
-const { rotaAtual, irPara } = useRotas()
+const rota = useRoute() // Tela aberta agora (rota.path, ex.: '/upload').
+const router = useRouter()
 const { recolhida, alternar } = useMenuLateral()
 
 const temDados = computed(() => store.quantidadeLinhas > 0) // O dado já saiu do upload e seguiu pela trilha.
@@ -148,7 +149,7 @@ const etapas = computed(() => {
   const upload = {
     rotulo: 'Upload',
     icone: 'upload',
-    link: '#upload',
+    link: '/upload',
     estado: store.carregando ? 'processando' : erroLeitura ? 'erro' : temDados.value ? 'concluida' : 'pendente',
     detalhe: store.carregando ? 'lendo planilha…' : erroLeitura ? (recusado ? 'arquivo recusado' : 'falha na leitura') : temDados.value ? store.nomeArquivo : 'envie a planilha'
   }
@@ -156,7 +157,7 @@ const etapas = computed(() => {
   const validacao = {
     rotulo: 'Validação',
     icone: 'validacao',
-    link: '#validacao',
+    link: '/validacao',
     estado: !temDados.value ? 'pendente' : invalidas ? 'alerta' : 'concluida',
     detalhe: !temDados.value ? 'aguardando dados' : invalidas ? `${invalidas} ${invalidas === 1 ? 'linha' : 'linhas'} com erro` : 'tudo certo'
   }
@@ -164,7 +165,7 @@ const etapas = computed(() => {
   const relatorio = {
     rotulo: 'Relatório',
     icone: 'relatorio',
-    link: '#relatorio',
+    link: '/relatorio',
     estado: temDados.value ? 'concluida' : 'pendente',
     detalhe: temDados.value ? `${store.percentualValido}% de qualidade` : 'aguardando planilha'
   }
@@ -173,7 +174,7 @@ const etapas = computed(() => {
   const dashboard = {
     rotulo: 'Dashboard',
     icone: 'dashboard',
-    link: '#dashboard',
+    link: '/dashboard',
     estado: !store.liberada ? 'pendente' : store.mudouDesdeLiberacao ? 'alerta' : 'concluida',
     detalhe: store.liberada
       ? (store.mudouDesdeLiberacao ? 'há dados novos' : `${liberados} ${liberados === 1 ? 'cliente' : 'clientes'}`)
@@ -190,6 +191,6 @@ const etapasConcluidas = computed(() => etapas.value.filter(e => ['concluida', '
 
 function sair() {
   auth.logout()
-  irPara('#login')
+  router.push('/login')
 }
 </script>

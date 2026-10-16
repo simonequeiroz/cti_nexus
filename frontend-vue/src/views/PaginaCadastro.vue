@@ -1,4 +1,4 @@
-<!-- Tela de pedido de acesso (#cadastro): mesmo visual do login. Quem aprova e escolhe o papel é o administrador. -->
+<!-- Tela de pedido de acesso (#/cadastro): mesmo visual do login. Quem aprova e escolhe o papel é o administrador. -->
 <template>
   <div class="bg-surface text-black-dark font-sans antialiased min-h-screen grid grid-cols-1 lg:grid-cols-2">
     <PainelMarcaLogin />
@@ -13,7 +13,7 @@
         <FormularioPedidoAcesso />
 
         <p class="mt-8 text-sm text-center text-regular">
-          Já tem acesso? <a href="#login" class="font-semibold text-blue-primary hover:underline">Entrar</a>
+          Já tem acesso? <a href="#/login" class="font-semibold text-blue-primary hover:underline">Entrar</a>
         </p>
       </div>
     </main>

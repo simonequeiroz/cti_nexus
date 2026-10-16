@@ -37,7 +37,7 @@
       >
         {{ estado === 'aguardando' ? 'Liberar' : 'Liberar de novo' }} {{ textoClientes(store.quantidadeValidas) }} →
       </BotaoBase>
-      <BotaoBase v-if="store.liberada" href="#dashboard" variante="secundario">Ver painel</BotaoBase>
+      <BotaoBase v-if="store.liberada" href="#/dashboard" variante="secundario">Ver painel</BotaoBase>
     </div>
   </section>
 </template>

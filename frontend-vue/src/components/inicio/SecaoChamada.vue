@@ -5,7 +5,7 @@
       <h2 id="titulo-cta" class="font-display font-bold text-xl md:text-2xl max-w-lg leading-tight">
         Pare de gerenciar clientes na planilha. Comece a decidir com dado tratado.
       </h2>
-      <BotaoBase href="#login" tamanho="lg" class="shadow-lg">Acessar sistema →</BotaoBase>
+      <BotaoBase href="#/login" tamanho="lg" class="shadow-lg">Acessar sistema →</BotaoBase>
     </div>
   </section>
 </template>

@@ -13,7 +13,7 @@
       </p>
 
       <div class="flex gap-4 mt-8 flex-wrap">
-        <BotaoBase href="#login" tamanho="lg" class="shadow-lg hover:shadow-xl hover:-translate-y-0.5">
+        <BotaoBase href="#/login" tamanho="lg" class="shadow-lg hover:shadow-xl hover:-translate-y-0.5">
           Acessar sistema →
         </BotaoBase>
         <BotaoBase href="#recursos" variante="secundario" tamanho="lg" class="text-black-dark shadow-sm hover:-translate-y-0.5">
@@ -23,8 +23,9 @@
 
       <!-- Microcopy: orienta quem já tem acesso e quem está chegando agora. -->
       <p class="mt-4 text-sm text-regular">
-        Já tem conta? <a href="#login" class="font-semibold text-blue-primary hover:underline focus-visible:outline-2 focus-visible:outline-blue-primary">Acesse</a>.
-        Novo por aqui? Use o <a href="#login" class="font-semibold text-blue-primary hover:underline focus-visible:outline-2 focus-visible:outline-blue-primary">acesso de demonstração</a> e importe sua primeira planilha em minutos.
+        Já tem conta? <a href="#/login" class="font-semibold text-blue-primary hover:underline focus-visible:outline-2 focus-visible:outline-blue-primary">Acesse</a>.
+        Novo por aqui? <a href="#/cadastro" class="font-semibold text-blue-primary hover:underline focus-visible:outline-2 focus-visible:outline-blue-primary">Peça acesso</a>
+        ou use o <a href="#/login" class="font-semibold text-blue-primary hover:underline focus-visible:outline-2 focus-visible:outline-blue-primary">acesso de demonstração</a> e importe sua primeira planilha em minutos.
       </p>
 
       <PainelTransformacao class="mt-14" />

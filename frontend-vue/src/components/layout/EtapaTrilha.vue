@@ -3,7 +3,7 @@
   <li class="relative">
     <component
       :is="link ? 'a' : 'div'"
-      :href="link"
+      :href="link && '#' + link"
       class="relative flex items-center gap-3 rounded-2xl p-2 transition-colors focus-visible:outline-2 focus-visible:outline-blue-primary"
       :class="ativa ? 'bg-white/10' : link ? 'hover:bg-white/5' : ''"
       :aria-current="ativa ? 'page' : undefined"
@@ -45,7 +45,7 @@ defineProps({
   detalhe: { type: String, default: '' },
   icone: { type: String, required: true }, // upload | validacao | relatorio | dashboard
   estado: { type: String, default: 'pendente' }, // pendente | processando | concluida | alerta | erro
-  link: { type: String, default: null }, // Sem link a etapa só mostra o status.
+  link: { type: String, default: null }, // Rota da etapa (ex.: '/upload'). Sem link a etapa só mostra o status.
   ativa: { type: Boolean, default: false }, // Tela aberta no momento.
   ultima: { type: Boolean, default: false },
   ligacaoAcesa: { type: Boolean, default: false },

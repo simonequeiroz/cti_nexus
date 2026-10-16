@@ -3,7 +3,7 @@
   <div v-if="enviado" role="status" class="rounded-lg bg-green/10 border border-green/30 px-4 py-4 text-sm text-green-dark">
     <p class="font-semibold">Pedido enviado.</p>
     <p class="mt-1">Assim que o administrador aprovar, você entra com o e-mail <span class="font-mono">{{ enviado }}</span> e a senha que escolheu.</p>
-    <a href="#login" class="inline-block mt-3 font-semibold text-blue-primary hover:underline">Ir para o login</a>
+    <a href="#/login" class="inline-block mt-3 font-semibold text-blue-primary hover:underline">Ir para o login</a>
   </div>
 
   <form v-else class="space-y-5" novalidate @submit.prevent="enviar">

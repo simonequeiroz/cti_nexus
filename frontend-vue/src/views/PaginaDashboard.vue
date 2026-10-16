@@ -15,7 +15,7 @@
           <strong class="text-black-dark">{{ store.nomeArquivo }}</strong> ainda não {{ store.quantidadeValidas === 1 ? 'foi liberado' : 'foram liberados' }}.
           Revise e libere para {{ store.quantidadeValidas === 1 ? 'ele aparecer' : 'eles aparecerem' }} aqui.
         </p>
-        <BotaoBase href="#validacao" tamanho="lg" class="mt-6">Revisar e liberar</BotaoBase>
+        <BotaoBase href="#/validacao" tamanho="lg" class="mt-6">Revisar e liberar</BotaoBase>
       </template>
       <p v-else class="mt-2 text-sm text-regular">
         A planilha <strong class="text-black-dark">{{ store.nomeArquivo }}</strong> já foi conferida, mas a equipe de operações ainda não liberou os clientes para o painel.
@@ -30,7 +30,7 @@
             liberados por {{ store.liberacao.por?.nome ?? '—' }} em {{ formatarData(store.liberacao.em) }}.
             <template v-if="foraDoPainel">
               {{ foraDoPainel }} {{ foraDoPainel === 1 ? 'linha ficou' : 'linhas ficaram' }} de fora
-              (<a href="#relatorio" class="text-blue-primary font-medium hover:underline">ver relatório</a>).
+              (<a href="#/relatorio" class="text-blue-primary font-medium hover:underline">ver relatório</a>).
             </template>
           </p>
         </IntroducaoPagina>
@@ -40,7 +40,7 @@
 
       <p v-if="store.mudouDesdeLiberacao" role="status" class="mt-6 rounded-lg border border-orange/30 bg-orange/10 px-4 py-2.5 text-sm text-orange-dark">
         Há correções feitas depois da liberação que ainda não aparecem aqui.
-        <a v-if="auth.pode('aprovar_carga')" href="#validacao" class="font-semibold underline">Liberar de novo</a>
+        <a v-if="auth.pode('aprovar_carga')" href="#/validacao" class="font-semibold underline">Liberar de novo</a>
       </p>
 
       <p v-if="!clientes.length" class="mt-10 text-center text-regular">Nenhum cliente com esses filtros.</p>
@@ -90,11 +90,11 @@
           </p>
         </div>
         <div class="flex flex-wrap gap-3">
-          <BotaoBase v-if="store.quantidadeInvalidas && auth.pode('corrigir_dados')" href="#validacao">
+          <BotaoBase v-if="store.quantidadeInvalidas && auth.pode('corrigir_dados')" href="#/validacao">
             Corrigir {{ store.quantidadeInvalidas }} {{ store.quantidadeInvalidas === 1 ? 'linha' : 'linhas' }} →
           </BotaoBase>
-          <BotaoBase href="#relatorio" :variante="store.quantidadeInvalidas && auth.pode('corrigir_dados') ? 'secundario' : 'primario'">Ver relatório</BotaoBase>
-          <BotaoBase v-if="auth.pode('enviar_planilha')" href="#upload" variante="secundario">Enviar outra planilha</BotaoBase>
+          <BotaoBase href="#/relatorio" :variante="store.quantidadeInvalidas && auth.pode('corrigir_dados') ? 'secundario' : 'primario'">Ver relatório</BotaoBase>
+          <BotaoBase v-if="auth.pode('enviar_planilha')" href="#/upload" variante="secundario">Enviar outra planilha</BotaoBase>
         </div>
       </section>
     </template>

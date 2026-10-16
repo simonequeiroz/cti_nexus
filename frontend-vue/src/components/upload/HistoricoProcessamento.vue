@@ -37,7 +37,7 @@
           <!-- Só a planilha aberta pode ser corrigida; as anteriores já foram substituídas. -->
           <a
             v-if="registro.id === store.idHistoricoAtual && registro.invalidas"
-            href="#validacao"
+            href="#/validacao"
             class="text-xs font-semibold text-blue-primary hover:underline whitespace-nowrap"
           >
             Corrigir →

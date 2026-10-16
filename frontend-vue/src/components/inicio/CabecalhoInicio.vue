@@ -11,7 +11,7 @@
       </ul>
     </nav>
 
-    <BotaoBase href="#login">Entrar no sistema</BotaoBase>
+    <BotaoBase href="#/login">Entrar no sistema</BotaoBase>
   </header>
 </template>
 

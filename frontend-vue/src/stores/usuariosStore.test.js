@@ -75,7 +75,7 @@ describe('roteiro da apresentação', () => {
 
       expect(await auth.login('PROF@senai.br ', 'senai2026')).toBe(true)
       expect(auth.usuario).toMatchObject({ nome: 'Professora Teste', papel: 'analista' })
-      expect(auth.telaDeEntrada).toBe('#upload')
+      expect(auth.telaDeEntrada).toBe('/upload')
     } finally {
       delete globalThis.localStorage
     }

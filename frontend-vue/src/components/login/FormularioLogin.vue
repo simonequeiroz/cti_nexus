@@ -49,7 +49,7 @@
 
   <!-- Não é um "criar conta" aberto: vira um pedido, e só entra depois que o administrador aprovar e escolher o papel. -->
   <p class="mt-6 pt-6 border-t border-blue-secondary/70 text-sm text-center text-regular">
-    Não tem acesso? <a href="#cadastro" class="font-semibold text-blue-primary hover:underline">Pedir acesso</a>
+    Não tem acesso? <a href="#/cadastro" class="font-semibold text-blue-primary hover:underline">Pedir acesso</a>
   </p>
 
   <!-- Acesso de demonstração para a apresentação: recolhido, e desligado com VITE_MOSTRAR_DEMO=false.
@@ -77,11 +77,11 @@ import CampoTexto from '../ui/CampoTexto.vue'
 import BotaoBase from '../ui/BotaoBase.vue'
 import { useAutenticacaoStore } from '../../stores/autenticacaoStore'
 import { USUARIOS_DEMO, useUsuariosStore } from '../../stores/usuariosStore'
-import { useRotas } from '../../composables/useRotas'
+import { useRouter } from 'vue-router'
 import { PAPEIS } from '../../constants/permissoes'
 
 const auth = useAutenticacaoStore()
-const { irPara } = useRotas()
+const router = useRouter()
 
 const email = ref('')
 const senha = ref('')
@@ -92,7 +92,7 @@ const MOSTRAR_DEMO = import.meta.env.VITE_MOSTRAR_DEMO !== 'false' // Ligado por
 
 async function entrar() {
   const deuCerto = await auth.login(email.value, senha.value)
-  if (deuCerto) irPara(auth.telaDeEntrada) // Analista e administrador vão para o upload; gestor, para o painel.
+  if (deuCerto) router.push(auth.telaDeEntrada) // Analista e administrador vão para o upload; gestor, para o painel.
 }
 
 // Usuários de demonstração como estão agora no cadastro (o papel pode ter mudado); os desativados não aparecem.
@@ -102,6 +102,6 @@ const demonstracao = computed(() => {
 })
 
 async function entrarComDemo(id) { // Um clique, sem digitar e-mail e senha.
-  if (await auth.loginDemonstracao(id)) irPara(auth.telaDeEntrada)
+  if (await auth.loginDemonstracao(id)) router.push(auth.telaDeEntrada)
 }
 </script>

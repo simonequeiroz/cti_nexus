@@ -9,10 +9,10 @@
         <ul class="flex gap-1 text-sm font-medium">
           <li v-for="item in menu" :key="item.link" class="flex-1 sm:flex-none">
             <a
-              :href="item.link"
+              :href="'#' + item.link"
               class="block px-1 sm:px-3 py-2 rounded-lg text-center whitespace-nowrap transition-colors"
-              :class="rotaAtual === item.link ? 'bg-blue-primary/10 text-blue-primary' : 'text-regular hover:text-blue-primary'"
-              :aria-current="rotaAtual === item.link ? 'page' : undefined"
+              :class="rota.path === item.link ? 'bg-blue-primary/10 text-blue-primary' : 'text-regular hover:text-blue-primary'"
+              :aria-current="rota.path === item.link ? 'page' : undefined"
             >
               {{ item.rotulo }}
             </a>
@@ -47,24 +47,25 @@ import { computed } from 'vue'
 import LogoMarca from '../ui/LogoMarca.vue'
 import BotaoBase from '../ui/BotaoBase.vue'
 import { useAutenticacaoStore } from '../../stores/autenticacaoStore'
-import { useRotas } from '../../composables/useRotas'
+import { useRoute, useRouter } from 'vue-router'
 import { PERMISSAO_DA_TELA } from '../../constants/permissoes'
 
 const MENU = [
-  { rotulo: 'Upload', link: '#upload' },
-  { rotulo: 'Validação', link: '#validacao' },
-  { rotulo: 'Relatório', link: '#relatorio' },
-  { rotulo: 'Dashboard', link: '#dashboard' },
-  { rotulo: 'Usuários', link: '#usuarios' }
+  { rotulo: 'Upload', link: '/upload' },
+  { rotulo: 'Validação', link: '/validacao' },
+  { rotulo: 'Relatório', link: '/relatorio' },
+  { rotulo: 'Dashboard', link: '/dashboard' },
+  { rotulo: 'Usuários', link: '/usuarios' }
 ]
 
 const auth = useAutenticacaoStore()
-const { rotaAtual, irPara } = useRotas()
+const rota = useRoute() // Tela aberta agora (rota.path, ex.: '/upload').
+const router = useRouter()
 
 const menu = computed(() => MENU.filter(item => auth.pode(PERMISSAO_DA_TELA[item.link]))) // Só as telas que o papel pode abrir.
 
 function sair() {
   auth.logout()
-  irPara('#login')
+  router.push('/login')
 }
 </script>

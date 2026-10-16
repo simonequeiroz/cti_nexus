@@ -35,11 +35,11 @@ export const PAPEIS = {
 
 // Permissão exigida por cada tela interna, na ordem da trilha do dado.
 export const PERMISSAO_DA_TELA = {
-  '#upload': 'enviar_planilha',
-  '#validacao': 'corrigir_dados',
-  '#relatorio': 'ver_relatorio',
-  '#dashboard': 'ver_painel',
-  '#usuarios': 'gerenciar_usuarios' // Fora da trilha do dado: aparece separado no menu.
+  '/upload': 'enviar_planilha',
+  '/validacao': 'corrigir_dados',
+  '/relatorio': 'ver_relatorio',
+  '/dashboard': 'ver_painel',
+  '/usuarios': 'gerenciar_usuarios' // Fora da trilha do dado: aparece separado no menu.
 }
 
 export function temPermissao(papel, permissao) {
@@ -48,6 +48,6 @@ export function temPermissao(papel, permissao) {
 
 // Para onde vai depois do login: quem envia planilha começa pelo Upload; quem só consulta, pelo painel.
 export function telaInicial(papel) {
-  const ordem = ['#upload', '#dashboard', '#relatorio']
-  return ordem.find(tela => temPermissao(papel, PERMISSAO_DA_TELA[tela])) ?? '#login'
+  const ordem = ['/upload', '/dashboard', '/relatorio']
+  return ordem.find(tela => temPermissao(papel, PERMISSAO_DA_TELA[tela])) ?? '/login'
 }
