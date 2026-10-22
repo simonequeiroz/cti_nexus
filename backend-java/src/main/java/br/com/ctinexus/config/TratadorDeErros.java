@@ -19,8 +19,10 @@ public class TratadorDeErros {
     // Erros de regra lançados pelos services (e-mail repetido, senha errada, último administrador...).
     @ExceptionHandler(RegraDeNegocioException.class)
     public ResponseEntity<ErroResponse> regraDeNegocio(RegraDeNegocioException e) {
+        // Se o erro é de um campo (ex.: e-mail repetido), o front mostra a mensagem embaixo daquele campo.
+        Map<String, String> campos = e.getCampo() == null ? Map.of() : Map.of(e.getCampo(), e.getMessage());
         return ResponseEntity.status(e.getStatus())
-                .body(new ErroResponse(e.getStatus().value(), e.getMessage()));
+                .body(new ErroResponse(e.getStatus().value(), e.getMessage(), campos));
     }
 
     // Erros das anotações dos DTOs (@NotBlank, @Email, @Size...): devolve 400 com o erro de cada campo.

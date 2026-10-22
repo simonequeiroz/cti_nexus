@@ -33,7 +33,7 @@ public class AutenticacaoService {
         String email = normalizarEmail(dados.email());
 
         if (usuarioRepository.existsByEmail(email)) { // 1) E-mail repetido? Para aqui.
-            throw new RegraDeNegocioException(HttpStatus.CONFLICT, "Já existe um usuário ou pedido de acesso com esse e-mail.");
+            throw new RegraDeNegocioException(HttpStatus.CONFLICT, "Já existe um usuário ou pedido de acesso com esse e-mail.", "email");
         }
 
         Usuario usuario = new Usuario();

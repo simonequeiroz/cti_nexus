@@ -1,26 +1,33 @@
 package br.com.ctinexus.service;
 
 import br.com.ctinexus.dto.AlterarSituacaoRequest;
+import br.com.ctinexus.dto.UsuarioAdminRequest;
 import br.com.ctinexus.dto.UsuarioResponse;
 import br.com.ctinexus.model.Papel;
 import br.com.ctinexus.model.SituacaoUsuario;
 import br.com.ctinexus.model.Usuario;
 import br.com.ctinexus.repository.UsuarioRepository;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
 // Regras da tela Usuários (só o administrador chega aqui; quem barra os outros é a ConfiguracaoSeguranca).
-// Mesmas proteções do front (usuariosStore): ninguém altera a si mesmo e o sistema nunca fica sem administrador ativo.
+// Mesmas proteções do front (usuariosStore): ninguém altera o próprio papel ou situação,
+// e o sistema nunca fica sem administrador ativo.
 @Service
 public class UsuarioService {
 
-    private final UsuarioRepository usuarioRepository;
+    private static final int SENHA_MINIMA = 6; // Igual ao front (utils/validacaoUsuario.js).
 
-    public UsuarioService(UsuarioRepository usuarioRepository) {
+    private final UsuarioRepository usuarioRepository;
+    private final PasswordEncoder passwordEncoder;
+
+    public UsuarioService(UsuarioRepository usuarioRepository, PasswordEncoder passwordEncoder) {
         this.usuarioRepository = usuarioRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
     // Todos os usuários, inclusive os pedidos pendentes (o front separa pela "situacao").
@@ -30,7 +37,55 @@ public class UsuarioService {
                 .toList();
     }
 
-    // Aprovar pedido, desativar, reativar ou trocar o papel.
+    // Administrador cadastra alguém direto, já com papel e ativo (botão "+ Novo usuário").
+    @Transactional
+    public UsuarioResponse criar(UsuarioAdminRequest dados) {
+        String email = AutenticacaoService.normalizarEmail(dados.email());
+        if (usuarioRepository.existsByEmail(email)) {
+            throw new RegraDeNegocioException(HttpStatus.CONFLICT, "Já existe um usuário ou pedido de acesso com esse e-mail.", "email");
+        }
+        conferirSenha(dados.senha()); // No cadastro a senha é obrigatória.
+
+        Usuario usuario = new Usuario();
+        usuario.setNome(dados.nome().trim());
+        usuario.setEmail(email);
+        usuario.setSenhaHash(passwordEncoder.encode(dados.senha())); // Hash BCrypt.
+        usuario.setPapel(dados.papel());
+        usuario.setSituacao(SituacaoUsuario.ATIVO); // Cadastrado pelo administrador = já pode entrar.
+        return UsuarioResponse.de(usuarioRepository.save(usuario));
+    }
+
+    // Editar nome, e-mail, papel e (se vier preenchida) a senha (botão "Editar").
+    @Transactional
+    public UsuarioResponse editar(Long id, UsuarioAdminRequest dados, Usuario quemAltera) {
+        Usuario usuario = buscar(id);
+        String email = AutenticacaoService.normalizarEmail(dados.email());
+
+        // E-mail novo não pode ser de outra pessoa (o próprio e-mail pode continuar igual).
+        if (!email.equals(usuario.getEmail()) && usuarioRepository.existsByEmail(email)) {
+            throw new RegraDeNegocioException(HttpStatus.CONFLICT, "Já existe um usuário ou pedido de acesso com esse e-mail.", "email");
+        }
+        if (dados.papel() != usuario.getPapel()) { // Quer mudar o papel?
+            if (usuario.getId().equals(quemAltera.getId())) {
+                throw new RegraDeNegocioException(HttpStatus.CONFLICT, "Você não pode mudar o seu próprio papel.", "papel");
+            }
+            if (ehUltimoAdministrador(usuario)) {
+                throw new RegraDeNegocioException(HttpStatus.CONFLICT,
+                        "Este é o único administrador ativo. Cadastre outro antes de mudar o papel dele.", "papel");
+            }
+        }
+
+        usuario.setNome(dados.nome().trim());
+        usuario.setEmail(email);
+        usuario.setPapel(dados.papel());
+        if (dados.senha() != null && !dados.senha().isEmpty()) { // Senha em branco = manter a atual.
+            conferirSenha(dados.senha());
+            usuario.setSenhaHash(passwordEncoder.encode(dados.senha()));
+        }
+        return UsuarioResponse.de(usuarioRepository.save(usuario)); // UPDATE no banco.
+    }
+
+    // Aprovar pedido, desativar ou reativar (e, se vier, trocar o papel).
     @Transactional // Ou faz tudo, ou não faz nada no banco.
     public UsuarioResponse alterarSituacao(Long id, AlterarSituacaoRequest dados, Usuario quemAltera) {
         Usuario usuario = buscar(id);
@@ -41,23 +96,21 @@ public class UsuarioService {
 
         Papel novoPapel = dados.papel() != null ? dados.papel() : usuario.getPapel(); // Sem papel no pedido = mantém.
         if (dados.situacao() == SituacaoUsuario.ATIVO && novoPapel == null) { // Aprovar exige escolher o papel.
-            throw new RegraDeNegocioException(HttpStatus.BAD_REQUEST, "Escolha o papel do usuário para aprovar o acesso.");
+            throw new RegraDeNegocioException(HttpStatus.BAD_REQUEST, "Escolha o papel antes de aprovar.", "papel");
         }
         if (dados.situacao() == SituacaoUsuario.PENDENTE) { // Pendente é só para quem acabou de pedir.
             throw new RegraDeNegocioException(HttpStatus.BAD_REQUEST, "Escolha ATIVO ou DESATIVADO.");
         }
 
-        // Proteção 2: se este é o último administrador ativo, ele não pode deixar de ser.
-        boolean eraAdminAtivo = usuario.getPapel() == Papel.ADMINISTRADOR && usuario.getSituacao() == SituacaoUsuario.ATIVO;
+        // Proteção 2: o último administrador ativo não pode deixar de ser.
         boolean continuaAdminAtivo = novoPapel == Papel.ADMINISTRADOR && dados.situacao() == SituacaoUsuario.ATIVO;
-        if (eraAdminAtivo && !continuaAdminAtivo
-                && usuarioRepository.countByPapelAndSituacao(Papel.ADMINISTRADOR, SituacaoUsuario.ATIVO) <= 1) {
-            throw new RegraDeNegocioException(HttpStatus.CONFLICT, "O sistema precisa de pelo menos um administrador ativo.");
+        if (!continuaAdminAtivo && ehUltimoAdministrador(usuario)) {
+            throw new RegraDeNegocioException(HttpStatus.CONFLICT, "O único administrador ativo não pode ser desativado.");
         }
 
         usuario.setPapel(novoPapel);
         usuario.setSituacao(dados.situacao());
-        return UsuarioResponse.de(usuarioRepository.save(usuario)); // UPDATE no banco.
+        return UsuarioResponse.de(usuarioRepository.save(usuario));
     }
 
     // Recusar pedido de acesso: apaga, porque a pessoa nunca teve acesso. Usuário já aprovado só é desativado.
@@ -70,8 +123,24 @@ public class UsuarioService {
         usuarioRepository.delete(usuario);
     }
 
+    // ===== AJUDANTES (private = só usados aqui dentro) =====
+
     private Usuario buscar(Long id) {
         return usuarioRepository.findById(id)
                 .orElseThrow(() -> new RegraDeNegocioException(HttpStatus.NOT_FOUND, "Usuário não encontrado."));
+    }
+
+    // Este usuário é o único administrador ativo do sistema?
+    private boolean ehUltimoAdministrador(Usuario usuario) {
+        return usuario.getPapel() == Papel.ADMINISTRADOR
+                && usuario.getSituacao() == SituacaoUsuario.ATIVO
+                && usuarioRepository.countByPapelAndSituacao(Papel.ADMINISTRADOR, SituacaoUsuario.ATIVO) <= 1;
+    }
+
+    private void conferirSenha(String senha) {
+        if (senha == null || senha.length() < SENHA_MINIMA) {
+            throw new RegraDeNegocioException(HttpStatus.BAD_REQUEST,
+                    "A senha precisa ter pelo menos " + SENHA_MINIMA + " caracteres.", "senha");
+        }
     }
 }

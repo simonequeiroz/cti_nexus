@@ -13,7 +13,10 @@
     <CampoTexto v-model="dados.senha" rotulo="Senha" type="password" autocomplete="new-password" :erro="erros.senha" />
     <CampoTexto v-model="dados.confirmacao" rotulo="Confirmar senha" type="password" autocomplete="new-password" :erro="erros.confirmacao" />
 
-    <BotaoBase tipo="submit" tamanho="lg" class="w-full">Pedir acesso</BotaoBase>
+    <!-- Erro que não é de um campo (ex.: servidor desligado). -->
+    <p v-if="erros.geral" role="alert" class="text-sm text-orange-dark bg-orange/10 border border-orange/30 rounded-lg px-4 py-2.5">{{ erros.geral }}</p>
+
+    <BotaoBase tipo="submit" tamanho="lg" class="w-full" :disabled="enviando">{{ enviando ? 'Enviando…' : 'Pedir acesso' }}</BotaoBase>
   </form>
 </template>
 
@@ -29,9 +32,12 @@ const store = useUsuariosStore()
 const dados = reactive({ nome: '', email: '', cargo: '', senha: '', confirmacao: '' })
 const erros = ref({})
 const enviado = ref('') // E-mail do pedido enviado (vazio = formulário aberto).
+const enviando = ref(false) // Esperando a resposta da API (evita clicar duas vezes).
 
-function enviar() {
-  erros.value = store.pedirAcesso(dados)
+async function enviar() {
+  enviando.value = true
+  erros.value = await store.pedirAcesso(dados) // Chama POST /auth/cadastro na API.
+  enviando.value = false
   if (Object.keys(erros.value).length) return
   enviado.value = dados.email.trim().toLowerCase()
 }

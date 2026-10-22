@@ -46,15 +46,16 @@ const store = useUsuariosStore()
 
 const papelEscolhido = reactive({}) // Papel escolhido para cada pedido, pelo id. Começa vazio: o administrador decide.
 
-function aprovar(pedido) {
-  const problema = store.aprovarPedido(pedido.id, papelEscolhido[pedido.id])
+async function aprovar(pedido) {
+  const papel = papelEscolhido[pedido.id]
+  const problema = await store.aprovarPedido(pedido.id, papel) // PATCH na API; '' = deu certo.
   emit('aviso', problema
     ? { texto: problema, erro: true }
-    : { texto: `${pedido.nome} aprovado(a) como ${PAPEIS[papelEscolhido[pedido.id]].nome}. Já pode entrar com o e-mail ${pedido.email}.`, erro: false })
+    : { texto: `${pedido.nome} aprovado(a) como ${PAPEIS[papel].nome}. Já pode entrar com o e-mail ${pedido.email}.`, erro: false })
 }
 
-function recusar(pedido) {
-  store.recusarPedido(pedido.id)
-  emit('aviso', { texto: `Pedido de ${pedido.nome} recusado.`, erro: false })
+async function recusar(pedido) {
+  const problema = await store.recusarPedido(pedido.id) // DELETE na API.
+  emit('aviso', problema ? { texto: problema, erro: true } : { texto: `Pedido de ${pedido.nome} recusado.`, erro: false })
 }
 </script>

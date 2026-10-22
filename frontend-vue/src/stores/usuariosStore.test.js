@@ -1,83 +1,97 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
+import api from '../services/api'
 import { useUsuariosStore } from './usuariosStore'
 import { useAutenticacaoStore } from './autenticacaoStore'
 
+// Troca a API de verdade pela de mentira (services/apiFalsa.js), que imita o back-end Spring.
+vi.mock('../services/api', () => import('../services/apiFalsa'))
+
 const PEDIDO = { nome: 'Carla Souza', email: ' Carla@CTInexus.com ', cargo: 'Diretoria', senha: '123456', confirmacao: '123456' }
 
-beforeEach(() => setActivePinia(createPinia()))
+beforeEach(() => {
+  api.reiniciar()
+  setActivePinia(createPinia())
+})
+
+async function entrarComoAdministrador() {
+  await useAutenticacaoStore().login('admin@ctinexus.com', '123456')
+  const store = useUsuariosStore()
+  await store.carregar()
+  return store
+}
 
 describe('pedido de acesso', () => {
-  it('fica pendente, sem papel, e não entra antes da aprovação', () => {
-    const store = useUsuariosStore()
-    expect(store.pedirAcesso(PEDIDO)).toEqual({})
+  it('fica pendente, sem papel, e não entra antes da aprovação', async () => {
+    expect(await useUsuariosStore().pedirAcesso(PEDIDO)).toEqual({})
 
+    const auth = useAutenticacaoStore()
+    expect(await auth.login('carla@ctinexus.com', '123456')).toBe(false)
+    expect(auth.erro).toMatch(/não foi aprovado/)
+
+    const store = await entrarComoAdministrador()
     const [pedido] = store.pedidosPendentes
-    expect(pedido).toMatchObject({ email: 'carla@ctinexus.com', papel: null, ativo: false, pendente: true })
+    expect(pedido).toMatchObject({ email: 'carla@ctinexus.com', papel: null, ativo: false, pendente: true, cargo: 'Diretoria' })
     expect(store.cadastrados.some(u => u.id === pedido.id)).toBe(false) // Fora da lista de usuários.
-    expect(store.autenticar('carla@ctinexus.com', '123456').erro).toMatch(/não foi aprovado/)
   })
 
-  it('o administrador aprova escolhendo o papel, e aí a pessoa entra', () => {
+  it('e-mail repetido volta como erro do campo e-mail (resposta da API)', async () => {
     const store = useUsuariosStore()
-    store.pedirAcesso(PEDIDO)
+    await store.pedirAcesso(PEDIDO)
+    expect((await store.pedirAcesso(PEDIDO)).email).toMatch(/Já existe/)
+  })
+
+  it('o administrador aprova escolhendo o papel, e aí a pessoa entra', async () => {
+    await useUsuariosStore().pedirAcesso(PEDIDO)
+    const store = await entrarComoAdministrador()
     const { id } = store.pedidosPendentes[0]
 
-    expect(store.aprovarPedido(id, '')).toMatch(/Escolha o papel/)
-    expect(store.aprovarPedido(id, 'gestor')).toBe('')
+    expect(await store.aprovarPedido(id, '')).toMatch(/Escolha o papel/)
+    expect(await store.aprovarPedido(id, 'gestor')).toBe('')
     expect(store.pedidosPendentes).toHaveLength(0)
-    expect(store.autenticar('carla@ctinexus.com', '123456').usuario.papel).toBe('gestor')
+
+    const auth = useAutenticacaoStore()
+    auth.logout()
+    expect(await auth.login('CARLA@ctinexus.com ', '123456')).toBe(true)
+    expect(auth.usuario).toMatchObject({ nome: 'Carla Souza', papel: 'gestor' })
+    expect(auth.telaDeEntrada).toBe('/dashboard')
   })
 
-  it('recusar remove o pedido e libera o e-mail para um novo pedido', () => {
-    const store = useUsuariosStore()
-    store.pedirAcesso(PEDIDO)
-    expect(store.pedirAcesso(PEDIDO).email).toMatch(/Já existe/) // Não duplica o pedido.
+  it('recusar remove o pedido e libera o e-mail para um novo pedido', async () => {
+    await useUsuariosStore().pedirAcesso(PEDIDO)
+    const store = await entrarComoAdministrador()
 
-    store.recusarPedido(store.pedidosPendentes[0].id)
+    expect(await store.recusarPedido(store.pedidosPendentes[0].id)).toBe('')
     expect(store.pedidosPendentes).toHaveLength(0)
-    expect(store.pedirAcesso(PEDIDO)).toEqual({})
+    expect(await store.pedirAcesso(PEDIDO)).toEqual({})
   })
 })
 
-describe('acesso de demonstração', () => {
-  it('entra pelo id mesmo depois de mudarem o e-mail do usuário', async () => {
-    useUsuariosStore().editar(1, { nome: 'Rita Andrade', email: 'rita@empresa.com', senha: '', confirmacao: '', papel: 'administrador' })
-    const auth = useAutenticacaoStore()
-    expect(await auth.loginDemonstracao(1)).toBe(true)
-    expect(auth.usuario.email).toBe('rita@empresa.com')
+describe('tela Usuários', () => {
+  it('cadastra já com papel e edita nome e papel', async () => {
+    const store = await entrarComoAdministrador()
+    expect(await store.cadastrar({ nome: 'Bruno Melo', email: 'bruno@ctinexus.com', senha: 'abc123', confirmacao: 'abc123', papel: 'gestor' })).toEqual({})
+
+    const bruno = store.usuarios.find(u => u.email === 'bruno@ctinexus.com')
+    expect(bruno).toMatchObject({ papel: 'gestor', ativo: true })
+
+    expect(await store.editar(bruno.id, { nome: 'Bruno Melo Jr', email: 'bruno@ctinexus.com', senha: '', confirmacao: '', papel: 'analista' })).toEqual({})
+    expect(bruno).toMatchObject({ nome: 'Bruno Melo Jr', papel: 'analista' }) // Mesmo objeto, dados novos.
   })
 
-  it('não entra com usuário de demonstração desativado', async () => {
-    useUsuariosStore().alternarAtivo(3)
+  it('não deixa o sistema sem administrador ativo', async () => {
+    const store = await entrarComoAdministrador()
+    expect(await store.alternarAtivo(1)).toMatch(/único administrador/)
+    expect((await store.editar(1, { nome: 'Administrador', email: 'admin@ctinexus.com', senha: '', confirmacao: '', papel: 'gestor' })).papel).toMatch(/único administrador/)
+  })
+
+  it('desativado não entra mais', async () => {
+    const store = await entrarComoAdministrador()
+    expect(await store.alternarAtivo(3)).toBe('') // Gustavo Reis (gestor).
+
     const auth = useAutenticacaoStore()
-    expect(await auth.loginDemonstracao(3)).toBe(false)
+    auth.logout()
+    expect(await auth.loginDemonstracao('gestor@ctinexus.com')).toBe(false)
     expect(auth.erro).toMatch(/desativado/)
-  })
-})
-
-// Roteiro da apresentação: pedir acesso → administrador aprova → sair → entrar com o usuário novo.
-// Recarrega a página no meio (Pinia nova lendo o localStorage) para conferir que o pedido não se perde.
-describe('roteiro da apresentação', () => {
-  it('pedido aprovado pelo administrador vira um login que funciona', async () => {
-    const guardado = new Map()
-    globalThis.localStorage = { getItem: k => guardado.get(k) ?? null, setItem: (k, v) => guardado.set(k, v) }
-    try {
-      useUsuariosStore().pedirAcesso({ nome: 'Professora Teste', email: 'prof@senai.br', senha: 'senai2026', confirmacao: 'senai2026' })
-      expect(await useAutenticacaoStore().login('prof@senai.br', 'senai2026')).toBe(false) // Ainda não aprovado.
-
-      setActivePinia(createPinia()) // Recarregou a página.
-      const auth = useAutenticacaoStore()
-      await auth.loginDemonstracao(1) // Entra como administrador.
-      const usuarios = useUsuariosStore()
-      expect(usuarios.aprovarPedido(usuarios.pedidosPendentes[0].id, 'analista')).toBe('')
-      auth.logout()
-
-      expect(await auth.login('PROF@senai.br ', 'senai2026')).toBe(true)
-      expect(auth.usuario).toMatchObject({ nome: 'Professora Teste', papel: 'analista' })
-      expect(auth.telaDeEntrada).toBe('/upload')
-    } finally {
-      delete globalThis.localStorage
-    }
   })
 })

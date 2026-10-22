@@ -38,7 +38,11 @@ src/main/java/br/com/ctinexus/
 
 2. Rode, dentro da pasta `backend-java`: `mvn spring-boot:run` (ou o botão Run do Spring Boot Dashboard).
 3. Na primeira vez, o sistema cria as tabelas e o primeiro administrador: `admin@ctinexus.com` / `123456`
-   (ou o que estiver em `ADMIN_EMAIL` / `ADMIN_SENHA`).
+   (ou o que estiver em `ADMIN_EMAIL` / `ADMIN_SENHA`). Com `DEMO_USUARIOS=true` (padrão), cria também
+   `analista@ctinexus.com` e `gestor@ctinexus.com` (senha `123456`), usados nos botões de demonstração do login.
+
+Atalho: em vez de digitar as variáveis toda vez, preencha o arquivo `backend-java/.env` (copie o `.env.example`).
+Ele fica só no seu PC (o Git ignora).
 
 ## Rotas
 
@@ -49,6 +53,8 @@ src/main/java/br/com/ctinexus/
 | GET | `/api/auth/me` | logado | Dados de quem está logado |
 | GET | `/api/privado` | logado | Rota de teste da aula |
 | GET | `/api/admin/usuarios` | administrador | Lista usuários e pedidos |
+| POST | `/api/admin/usuarios` | administrador | Cadastra `{nome, email, senha, papel}`, já ativo |
+| PUT | `/api/admin/usuarios/{id}` | administrador | Edita `{nome, email, senha?, papel}` (senha vazia = mantém) |
 | PATCH | `/api/admin/usuarios/{id}/status` | administrador | `{situacao: "ATIVO", papel: "ANALISTA"}` aprova; `{situacao: "DESATIVADO"}` desativa |
 | DELETE | `/api/admin/usuarios/{id}` | administrador | Recusa um pedido pendente |
 

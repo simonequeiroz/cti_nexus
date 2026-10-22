@@ -1,9 +1,9 @@
 // Comunicação com a API do Spring Boot. O front nunca acessa o banco direto: Vue → axios → API → PostgreSQL.
-// As telas e stores usam assim: import api from '../services/api' e depois api.post('/auth/login', { ... }).
+// As telas e stores usam assim: import api from '../services/api' e depois api.post('/auth/login', { ... }) (vira http://localhost:8080/api/auth/login).
 import axios from 'axios' // Biblioteca que faz as chamadas HTTP.
 
 const api = axios.create({ // Cópia do axios já configurada, usada em todo o projeto.
-  baseURL: import.meta.env.VITE_API_URL, // Endereço do back-end, lido do arquivo .env (ex.: http://localhost:8080).
+  baseURL: import.meta.env.VITE_API_URL, // Endereço do back-end, lido do arquivo .env (ex.: http://localhost:8080/api).
   headers: {
     'Content-Type': 'application/json' // Os dados vão para a API no formato JSON.
   }

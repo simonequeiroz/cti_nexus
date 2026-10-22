@@ -1,32 +1,42 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { PAPEIS, temPermissao, telaInicial } from '../constants/permissoes'
-import { useUsuariosStore } from './usuariosStore'
+import api from '../services/api'
+import { usuarioDaApi, mensagemDeErro } from '../utils/usuarioApi'
 
+// Login pela API do Spring: POST /auth/login devolve o token (o "crachá") e os dados do usuário.
+// O token fica no sessionStorage com a chave 'token', que é onde o services/api.js procura para mandar em toda chamada.
 const CHAVE_SESSAO = 'cti-nexus-usuario'
+const CHAVE_TOKEN = 'token'
+
+// Usuários de demonstração (um por papel), criados pelo back-end quando DEMO_USUARIOS=true (config/DadosIniciais.java).
+export const SENHA_DEMONSTRACAO = '123456'
+export const USUARIOS_DEMO = [
+  { email: 'admin@ctinexus.com', papel: 'administrador' },
+  { email: 'analista@ctinexus.com', papel: 'analista' },
+  { email: 'gestor@ctinexus.com', papel: 'gestor' }
+]
 
 function lerSessao() { // Recupera o usuário logado se a página for recarregada.
   try {
     const usuario = JSON.parse(sessionStorage.getItem(CHAVE_SESSAO))
-    return PAPEIS[usuario?.papel] ? usuario : null // Sessão antiga, sem papel: pede o login de novo.
+    const token = sessionStorage.getItem(CHAVE_TOKEN)
+    return token && PAPEIS[usuario?.papel] ? usuario : null // Sem token ou sessão antiga: pede o login de novo.
   } catch {
     return null
   }
 }
 
-// A sessão guarda uma cópia do usuário; o cadastro é a fonte certa (nome ou papel podem ter mudado na tela Usuários).
-// Usuário desativado ou que não existe mais perde a sessão.
-function sincronizar(sessao) {
-  const cadastrado = sessao && useUsuariosStore().usuarios.find(u => u.id === sessao.id && u.ativo)
-  if (!cadastrado) return null
-  const { id, nome, email, papel } = cadastrado
+// Só o que as telas precisam saber de quem entrou (sem cargo, situação etc.).
+function resumo(usuario) {
+  const { id, nome, email, papel } = usuarioDaApi(usuario)
   return { id, nome, email, papel }
 }
 
 export const useAutenticacaoStore = defineStore('auth', () => {
   // ===== STATE =====
 
-  const usuario = ref(sincronizar(lerSessao())) // Guarda o usuário logado (ou null).
+  const usuario = ref(lerSessao()) // Guarda o usuário logado (ou null).
   const carregando = ref(false) // Informa se o login está sendo verificado.
   const erro = ref('') // Guarda a mensagem de erro do login.
 
@@ -46,7 +56,7 @@ export const useAutenticacaoStore = defineStore('auth', () => {
 
   // ===== ACTIONS =====
 
-  async function login(email, senha) { // Confere e-mail e senha e guarda o usuário.
+  async function login(email, senha) { // Manda e-mail e senha para a API e guarda o token e o usuário.
     erro.value = ''
 
     if (!email.trim() || !senha) {
@@ -55,41 +65,40 @@ export const useAutenticacaoStore = defineStore('auth', () => {
     }
 
     carregando.value = true
-    await new Promise(resolve => setTimeout(resolve, 600)) // Simula o tempo de resposta do servidor.
-    carregando.value = false
-
-    // TODO: trocar pela chamada ao backend Java quando a rota de login existir (o papel virá do banco).
-    const resposta = useUsuariosStore().autenticar(email, senha)
-    if (resposta.erro) {
-      erro.value = resposta.erro
-      return false
-    }
-
-    const { id, nome, email: emailCadastrado, papel } = resposta.usuario
-    usuario.value = { id, nome, email: emailCadastrado, papel } // Sem a senha.
-    guardarSessao()
-    return true
-  }
-
-  async function loginDemonstracao(id) { // Botões de demonstração do login: entra pelo id, sem e-mail e senha.
-    // TODO: some junto com o login de demonstração quando o backend existir.
-    erro.value = ''
-    carregando.value = true
-    await new Promise(resolve => setTimeout(resolve, 600))
-    carregando.value = false
-
-    usuario.value = sincronizar({ id })
-    if (!usuario.value) {
-      erro.value = 'Este acesso de demonstração foi desativado na tela Usuários.'
-      return false
-    }
-    guardarSessao()
-    return true
-  }
-
-  function guardarSessao() {
     try {
-      sessionStorage.setItem(CHAVE_SESSAO, JSON.stringify(usuario.value))
+      const { data } = await api.post('/auth/login', { email: email.trim(), senha }) // data = { token, tipo, usuario }
+      guardarSessao(data.token, resumo(data.usuario))
+      return true
+    } catch (e) {
+      erro.value = mensagemDeErro(e) // Ex.: "E-mail ou senha incorretos." ou "pedido ainda não foi aprovado".
+      return false
+    } finally {
+      carregando.value = false // Roda sempre, tendo dado certo ou errado.
+    }
+  }
+
+  // Botões "Usar acesso de demonstração": entram com os usuários que o back-end cria (config/DadosIniciais.java).
+  async function loginDemonstracao(email) {
+    return login(email, SENHA_DEMONSTRACAO)
+  }
+
+  // Ao abrir o sistema com alguém logado: pergunta à API quem é o dono do token (GET /auth/me).
+  // Pega nome ou papel que o administrador tenha mudado; token vencido cai no aviso de 401 do main.js.
+  async function conferirSessao() {
+    if (!estaAutenticado.value) return
+    try {
+      const { data } = await api.get('/auth/me')
+      guardarSessao(sessionStorage.getItem(CHAVE_TOKEN), resumo(data))
+    } catch {
+      // Sem resposta do servidor: continua com a sessão guardada.
+    }
+  }
+
+  function guardarSessao(token, dados) {
+    usuario.value = dados
+    try {
+      sessionStorage.setItem(CHAVE_TOKEN, token)
+      sessionStorage.setItem(CHAVE_SESSAO, JSON.stringify(dados))
     } catch {
       // Sem sessionStorage o login continua valendo até recarregar a página.
     }
@@ -97,13 +106,18 @@ export const useAutenticacaoStore = defineStore('auth', () => {
 
   function atualizarSessao(dados) { // O usuário logado editou o próprio nome ou e-mail na tela Usuários.
     usuario.value = { ...usuario.value, nome: dados.nome, email: dados.email }
-    guardarSessao()
+    try {
+      sessionStorage.setItem(CHAVE_SESSAO, JSON.stringify(usuario.value))
+    } catch {
+      // Nada a fazer.
+    }
   }
 
-  function logout() { // Remove o usuário logado.
+  function logout() { // Remove o usuário logado e o token.
     usuario.value = null
     try {
       sessionStorage.removeItem(CHAVE_SESSAO)
+      sessionStorage.removeItem(CHAVE_TOKEN)
     } catch {
       // Nada a fazer.
     }
@@ -112,6 +126,6 @@ export const useAutenticacaoStore = defineStore('auth', () => {
   return {
     usuario, carregando, erro,
     estaAutenticado, primeiroNome, nomeDoPapel, telaDeEntrada,
-    pode, login, loginDemonstracao, logout, atualizarSessao
+    pode, login, loginDemonstracao, conferirSessao, logout, atualizarSessao
   }
 })

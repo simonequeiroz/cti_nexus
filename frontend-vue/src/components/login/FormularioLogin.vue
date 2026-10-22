@@ -53,17 +53,17 @@
   </p>
 
   <!-- Acesso de demonstração para a apresentação: recolhido, e desligado com VITE_MOSTRAR_DEMO=false.
-       Entra pelo id do usuário de demonstração, então continua funcionando mesmo se o e-mail ou a senha dele mudar na tela Usuários. -->
+       Entra com os usuários que o back-end cria (DEMO_USUARIOS=true). Se o e-mail ou a senha deles mudar na tela Usuários, o botão mostra o erro do login. -->
   <details v-if="MOSTRAR_DEMO" class="mt-6 text-xs text-regular">
     <summary class="cursor-pointer text-center hover:text-blue-primary">Usar acesso de demonstração</summary>
     <div class="mt-3 flex flex-wrap justify-center gap-2">
       <button
-        v-for="demo in demonstracao"
-        :key="demo.id"
+        v-for="demo in USUARIOS_DEMO"
+        :key="demo.email"
         type="button"
         class="rounded-full border border-blue-secondary px-3 py-1.5 font-semibold text-black-dark hover:border-blue-primary hover:bg-blue-primary/5 transition-colors"
         :disabled="auth.carregando"
-        @click="entrarComDemo(demo.id)"
+        @click="entrarComDemo(demo.email)"
       >
         {{ PAPEIS[demo.papel].nome }}
       </button>
@@ -72,11 +72,10 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref } from 'vue'
 import CampoTexto from '../ui/CampoTexto.vue'
 import BotaoBase from '../ui/BotaoBase.vue'
-import { useAutenticacaoStore } from '../../stores/autenticacaoStore'
-import { USUARIOS_DEMO, useUsuariosStore } from '../../stores/usuariosStore'
+import { useAutenticacaoStore, USUARIOS_DEMO } from '../../stores/autenticacaoStore'
 import { useRouter } from 'vue-router'
 import { PAPEIS } from '../../constants/permissoes'
 
@@ -91,17 +90,11 @@ const ajudaSenha = ref(false) // Mostra a explicação de "Esqueci minha senha".
 const MOSTRAR_DEMO = import.meta.env.VITE_MOSTRAR_DEMO !== 'false' // Ligado por padrão (apresentação e Vercel).
 
 async function entrar() {
-  const deuCerto = await auth.login(email.value, senha.value)
+  const deuCerto = await auth.login(email.value, senha.value) // Chama POST /auth/login na API.
   if (deuCerto) router.push(auth.telaDeEntrada) // Analista e administrador vão para o upload; gestor, para o painel.
 }
 
-// Usuários de demonstração como estão agora no cadastro (o papel pode ter mudado); os desativados não aparecem.
-const demonstracao = computed(() => {
-  const usuarios = useUsuariosStore().usuarios
-  return USUARIOS_DEMO.map(demo => usuarios.find(u => u.id === demo.id)).filter(u => u?.ativo && PAPEIS[u.papel])
-})
-
-async function entrarComDemo(id) { // Um clique, sem digitar e-mail e senha.
-  if (await auth.loginDemonstracao(id)) router.push(auth.telaDeEntrada)
+async function entrarComDemo(emailDemo) { // Um clique, sem digitar e-mail e senha.
+  if (await auth.loginDemonstracao(emailDemo)) router.push(auth.telaDeEntrada)
 }
 </script>

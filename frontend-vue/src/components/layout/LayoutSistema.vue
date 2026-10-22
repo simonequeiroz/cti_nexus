@@ -15,4 +15,16 @@
 <script setup>
 import CabecalhoSistema from './CabecalhoSistema.vue'
 import TrilhaDados from './TrilhaDados.vue'
+import { onMounted } from 'vue'
+import { useAutenticacaoStore } from '../../stores/autenticacaoStore'
+import { useUsuariosStore } from '../../stores/usuariosStore'
+
+const auth = useAutenticacaoStore()
+const usuarios = useUsuariosStore()
+
+// Administrador: busca os usuários na API ao abrir cada tela interna. Serve para a tela Usuários
+// e para o número de pedidos de acesso ao lado de "Usuários" na trilha e no menu do celular.
+onMounted(() => {
+  if (auth.pode('gerenciar_usuarios')) usuarios.carregar()
+})
 </script>

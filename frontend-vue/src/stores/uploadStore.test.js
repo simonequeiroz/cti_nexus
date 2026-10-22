@@ -1,8 +1,11 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { setActivePinia, createPinia } from 'pinia'
 import { useUploadStore } from './uploadStore'
 import { useAutenticacaoStore } from './autenticacaoStore'
+
+// Login pela API de mentira (services/apiFalsa.js), sem precisar do back-end ligado.
+vi.mock('../services/api', () => import('../services/apiFalsa'))
 
 // Fluxo completo com a planilha de teste da tela (15 linhas: 5 corretas e 10 com erro).
 async function conferirPlanilhaDeTeste(email = 'analista@ctinexus.com') {

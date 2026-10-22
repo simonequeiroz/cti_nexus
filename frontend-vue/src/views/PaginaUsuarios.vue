@@ -12,6 +12,11 @@
       {{ aviso.texto }}
     </p>
 
+    <!-- A lista vem da API (o LayoutSistema pede ao abrir a tela). -->
+    <p v-if="store.erro" role="alert" class="mt-6 rounded-lg border px-4 py-2.5 text-sm bg-orange/10 border-orange/30 text-orange-dark">
+      Não foi possível carregar os usuários. {{ store.erro }}
+    </p>
+
     <PedidosAcesso v-if="store.pedidosPendentes.length" class="mt-6" @aviso="mostrarAviso" />
 
     <!-- :key recria o formulário ao trocar de usuário, para não levar dados de um para o outro. -->
@@ -64,8 +69,8 @@ function mostrarAviso(novoAviso) {
   Object.assign(aviso, novoAviso)
 }
 
-function alternarAtivo(usuario) {
-  const problema = store.alternarAtivo(usuario.id)
+async function alternarAtivo(usuario) {
+  const problema = await store.alternarAtivo(usuario.id) // PATCH na API; '' = deu certo.
   Object.assign(aviso, problema
     ? { texto: problema, erro: true }
     : { texto: `${usuario.nome} ${usuario.ativo ? 'pode entrar de novo' : 'não consegue mais entrar'}.`, erro: false })

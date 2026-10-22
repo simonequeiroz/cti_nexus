@@ -28,9 +28,12 @@
         <p v-if="erros.papel" id="erro-papel" class="mt-1 text-xs text-orange-dark">{{ erros.papel }}</p>
       </fieldset>
 
+      <!-- Erro que não é de um campo (ex.: servidor desligado). -->
+      <p v-if="erros.geral" role="alert" class="md:col-span-2 text-sm text-orange-dark bg-orange/10 border border-orange/30 rounded-lg px-4 py-2.5">{{ erros.geral }}</p>
+
       <div class="md:col-span-2 flex justify-end gap-3">
         <BotaoBase variante="secundario" @click="emit('cancelar')">Cancelar</BotaoBase>
-        <BotaoBase tipo="submit">{{ editando ? 'Salvar alterações' : 'Cadastrar usuário' }}</BotaoBase>
+        <BotaoBase tipo="submit" :disabled="salvando">{{ salvando ? 'Salvando…' : editando ? 'Salvar alterações' : 'Cadastrar usuário' }}</BotaoBase>
       </div>
     </form>
   </CartaoPainel>
@@ -65,9 +68,12 @@ const dados = reactive({
 })
 
 const erros = ref({})
+const salvando = ref(false) // Esperando a resposta da API (evita clicar duas vezes).
 
-function salvar() {
-  erros.value = editando.value ? store.editar(props.usuario.id, dados) : store.cadastrar(dados)
+async function salvar() {
+  salvando.value = true
+  erros.value = editando.value ? await store.editar(props.usuario.id, dados) : await store.cadastrar(dados) // PUT ou POST na API.
+  salvando.value = false
   if (Object.keys(erros.value).length) return
   emit('concluir', editando.value ? `Alterações de ${dados.nome.trim()} salvas.` : `${dados.nome.trim()} cadastrado(a). Já pode entrar com o e-mail ${dados.email.trim().toLowerCase()}.`)
 }

@@ -1,6 +1,7 @@
 package br.com.ctinexus.controller;
 
 import br.com.ctinexus.dto.AlterarSituacaoRequest;
+import br.com.ctinexus.dto.UsuarioAdminRequest;
 import br.com.ctinexus.dto.UsuarioResponse;
 import br.com.ctinexus.model.Usuario;
 import br.com.ctinexus.service.UsuarioService;
@@ -27,6 +28,21 @@ public class AdminUsuarioController {
     @GetMapping
     public List<UsuarioResponse> listar() {
         return usuarioService.listar();
+    }
+
+    // POST /api/admin/usuarios  -> administrador cadastra um usuário já com papel e ativo.
+    @PostMapping
+    @ResponseStatus(HttpStatus.CREATED)
+    public UsuarioResponse criar(@RequestBody @Valid UsuarioAdminRequest dados) {
+        return usuarioService.criar(dados);
+    }
+
+    // PUT /api/admin/usuarios/{id}  -> editar nome, e-mail, papel e (opcional) senha.
+    @PutMapping("/{id}")
+    public UsuarioResponse editar(@PathVariable Long id,
+                                  @RequestBody @Valid UsuarioAdminRequest dados,
+                                  @AuthenticationPrincipal Usuario quemAltera) {
+        return usuarioService.editar(id, dados, quemAltera);
     }
 
     // PATCH /api/admin/usuarios/{id}/status  -> aprovar, desativar, reativar ou trocar papel.

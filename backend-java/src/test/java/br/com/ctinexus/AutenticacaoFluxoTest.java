@@ -121,6 +121,61 @@ class AutenticacaoFluxoTest {
                 .andExpect(status().isUnauthorized());
     }
 
+    @Test
+    void administradorCadastraEEditaUsuarios() throws Exception {
+        String tokenAdmin = login("admin@ctinexus.com", "123456");
+
+        // Usuários de demonstração criados pelo DadosIniciais entram com 123456.
+        login("gestor@ctinexus.com", "123456");
+
+        // Cadastro direto: já nasce ativo e com papel, então já consegue entrar.
+        String resposta = api.perform(post("/api/admin/usuarios").header("Authorization", "Bearer " + tokenAdmin)
+                        .contentType(MediaType.APPLICATION_JSON).content("""
+                                { "nome": "Carla Souza", "email": "carla@ctinexus.com", "senha": "123456", "papel": "GESTOR" }
+                                """))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.situacao").value("ATIVO"))
+                .andReturn().getResponse().getContentAsString();
+        int idCarla = JsonPath.read(resposta, "$.id");
+        login("carla@ctinexus.com", "123456");
+
+        // Cadastro sem senha -> 400 apontando o campo "senha".
+        api.perform(post("/api/admin/usuarios").header("Authorization", "Bearer " + tokenAdmin)
+                        .contentType(MediaType.APPLICATION_JSON).content("""
+                                { "nome": "Sem Senha", "email": "sem@ctinexus.com", "papel": "GESTOR" }
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.campos.senha").exists());
+
+        // Editar: troca papel e senha. E-mail de outra pessoa -> 409 no campo "email".
+        api.perform(put("/api/admin/usuarios/" + idCarla).header("Authorization", "Bearer " + tokenAdmin)
+                        .contentType(MediaType.APPLICATION_JSON).content("""
+                                { "nome": "Carla Souza", "email": "carla@ctinexus.com", "senha": "nova123", "papel": "ANALISTA" }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.papel").value("ANALISTA"));
+        login("carla@ctinexus.com", "nova123");
+        api.perform(put("/api/admin/usuarios/" + idCarla).header("Authorization", "Bearer " + tokenAdmin)
+                        .contentType(MediaType.APPLICATION_JSON).content("""
+                                { "nome": "Carla Souza", "email": "gestor@ctinexus.com", "papel": "ANALISTA" }
+                                """))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.campos.email").exists());
+
+        // O administrador edita o próprio nome (pode), mas não o próprio papel.
+        api.perform(put("/api/admin/usuarios/1").header("Authorization", "Bearer " + tokenAdmin)
+                        .contentType(MediaType.APPLICATION_JSON).content("""
+                                { "nome": "Rita Andrade", "email": "admin@ctinexus.com", "papel": "ADMINISTRADOR" }
+                                """))
+                .andExpect(status().isOk());
+        api.perform(put("/api/admin/usuarios/1").header("Authorization", "Bearer " + tokenAdmin)
+                        .contentType(MediaType.APPLICATION_JSON).content("""
+                                { "nome": "Rita Andrade", "email": "admin@ctinexus.com", "papel": "GESTOR" }
+                                """))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.campos.papel").exists());
+    }
+
     // Faz login e devolve só o token.
     private String login(String email, String senha) throws Exception {
         String resposta = api.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON)
