@@ -1,10 +1,10 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { PAPEIS, temPermissao, telaInicial } from '../constants/permissoes'
-import api from '../services/api'
+import { entrar, buscarUsuarioLogado } from '../services/autenticacaoService' // Rotas /auth da API.
 import { usuarioDaApi, mensagemDeErro } from '../utils/usuarioApi'
 
-// Login pela API do Spring: POST /auth/login devolve o token (o "crachá") e os dados do usuário.
+// Login pela API do Spring (services/autenticacaoService.js): POST /auth/login devolve o token (o "crachá") e os dados do usuário.
 // O token fica no sessionStorage com a chave 'token', que é onde o services/api.js procura para mandar em toda chamada.
 const CHAVE_SESSAO = 'cti-nexus-usuario'
 const CHAVE_TOKEN = 'token'
@@ -66,8 +66,8 @@ export const useAutenticacaoStore = defineStore('auth', () => {
 
     carregando.value = true
     try {
-      const { data } = await api.post('/auth/login', { email: email.trim(), senha }) // data = { token, tipo, usuario }
-      guardarSessao(data.token, resumo(data.usuario))
+      const resposta = await entrar(email.trim(), senha) // POST /auth/login → { token, tipo, usuario }
+      guardarSessao(resposta.token, resumo(resposta.usuario))
       return true
     } catch (e) {
       erro.value = mensagemDeErro(e) // Ex.: "E-mail ou senha incorretos." ou "pedido ainda não foi aprovado".
@@ -87,8 +87,8 @@ export const useAutenticacaoStore = defineStore('auth', () => {
   async function conferirSessao() {
     if (!estaAutenticado.value) return
     try {
-      const { data } = await api.get('/auth/me')
-      guardarSessao(sessionStorage.getItem(CHAVE_TOKEN), resumo(data))
+      const dados = await buscarUsuarioLogado() // GET /auth/me
+      guardarSessao(sessionStorage.getItem(CHAVE_TOKEN), resumo(dados))
     } catch {
       // Sem resposta do servidor: continua com a sessão guardada.
     }

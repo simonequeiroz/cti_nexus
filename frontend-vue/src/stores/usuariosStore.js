@@ -1,17 +1,14 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { PAPEIS } from '../constants/permissoes'
-import api from '../services/api'
+import * as autenticacaoService from '../services/autenticacaoService' // Pedido de acesso (/auth/cadastro).
+import * as usuariosService from '../services/usuariosService' // Rotas /admin/usuarios da API.
 import { validarUsuario, validarPedidoAcesso, ultimoAdministrador } from '../utils/validacaoUsuario'
 import { usuarioDaApi, papelParaApi, mensagemDeErro, errosDeCampo } from '../utils/usuarioApi'
 
 // Usuários e pedidos de acesso, guardados no banco pelo back-end (tabela usuario, senha com BCrypt).
-// Rotas usadas (só o administrador, menos o pedido de acesso, que é público):
-//   POST /auth/cadastro                 pedido de acesso (tela #/cadastro)
-//   GET /admin/usuarios                 lista
-//   POST /admin/usuarios                cadastrar   |  PUT /admin/usuarios/{id}  editar
-//   PATCH /admin/usuarios/{id}/status   aprovar, desativar, reativar
-//   DELETE /admin/usuarios/{id}         recusar pedido
+// As chamadas à API ficam em services/usuariosService.js (só o administrador) e services/autenticacaoService.js
+// (pedido de acesso, público). Aqui ficam o estado da tela e as regras antes de chamar.
 // As regras do formulário (utils/validacaoUsuario.js) rodam antes, para avisar na hora; a API confere tudo de novo.
 
 export const useUsuariosStore = defineStore('usuarios', () => {
@@ -40,8 +37,8 @@ export const useUsuariosStore = defineStore('usuarios', () => {
     carregando.value = true
     erro.value = ''
     try {
-      const { data } = await api.get('/admin/usuarios')
-      usuarios.value = data.map(usuarioDaApi)
+      const lista = await usuariosService.listarUsuarios() // GET /admin/usuarios
+      usuarios.value = lista.map(usuarioDaApi)
     } catch (e) {
       erro.value = mensagemDeErro(e)
     } finally {
@@ -64,7 +61,7 @@ export const useUsuariosStore = defineStore('usuarios', () => {
     if (Object.keys(erros).length) return erros
 
     try {
-      await api.post('/auth/cadastro', { nome: dados.nome, email: dados.email, cargo: dados.cargo, senha: dados.senha })
+      await autenticacaoService.pedirAcesso(dados) // POST /auth/cadastro
       return {}
     } catch (e) {
       return errosDeCampo(e) // Ex.: { email: 'Já existe um usuário ou pedido de acesso com esse e-mail.' }
@@ -76,8 +73,7 @@ export const useUsuariosStore = defineStore('usuarios', () => {
     if (Object.keys(erros).length) return erros
 
     try {
-      const { data } = await api.post('/admin/usuarios', paraApi(dados))
-      atualizarNaLista(data)
+      atualizarNaLista(await usuariosService.cadastrarUsuario(paraApi(dados))) // POST /admin/usuarios
       return {}
     } catch (e) {
       return errosDeCampo(e)
@@ -92,8 +88,7 @@ export const useUsuariosStore = defineStore('usuarios', () => {
     if (Object.keys(erros).length) return erros
 
     try {
-      const { data } = await api.put(`/admin/usuarios/${id}`, paraApi(dados))
-      atualizarNaLista(data)
+      atualizarNaLista(await usuariosService.editarUsuario(id, paraApi(dados))) // PUT /admin/usuarios/{id}
       return {}
     } catch (e) {
       return errosDeCampo(e)
@@ -102,18 +97,18 @@ export const useUsuariosStore = defineStore('usuarios', () => {
 
   async function aprovarPedido(id, papel) { // O administrador escolhe o papel e libera a entrada. Devolve '' ou o problema.
     if (!PAPEIS[papel]) return 'Escolha o papel antes de aprovar.'
-    return mudarSituacao(id, { situacao: 'ATIVO', papel: papelParaApi(papel) })
+    return mudarSituacao(id, 'ATIVO', papelParaApi(papel))
   }
 
   async function alternarAtivo(id) { // Desativa (ou reativa) o acesso. Não apaga: o histórico de quem fez o quê continua.
     const usuario = usuarios.value.find(u => u.id === id)
     if (usuario.ativo && ultimoAdministrador(usuarios.value, id)) return 'O único administrador ativo não pode ser desativado.'
-    return mudarSituacao(id, { situacao: usuario.ativo ? 'DESATIVADO' : 'ATIVO' })
+    return mudarSituacao(id, usuario.ativo ? 'DESATIVADO' : 'ATIVO')
   }
 
   async function recusarPedido(id) { // Apaga o pedido: a pessoa nunca teve acesso, então não há histórico a guardar.
     try {
-      await api.delete(`/admin/usuarios/${id}`)
+      await usuariosService.recusarPedido(id) // DELETE /admin/usuarios/{id}
       usuarios.value = usuarios.value.filter(u => u.id !== id)
       return ''
     } catch (e) {
@@ -121,10 +116,9 @@ export const useUsuariosStore = defineStore('usuarios', () => {
     }
   }
 
-  async function mudarSituacao(id, corpo) {
+  async function mudarSituacao(id, situacao, papel = null) {
     try {
-      const { data } = await api.patch(`/admin/usuarios/${id}/status`, corpo)
-      atualizarNaLista(data)
+      atualizarNaLista(await usuariosService.alterarSituacao(id, situacao, papel)) // PATCH /admin/usuarios/{id}/status
       return ''
     } catch (e) {
       return mensagemDeErro(e)
