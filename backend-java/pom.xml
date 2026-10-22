@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  pom.xml = "package.json" do Java. O Maven lê este arquivo para saber:
+  qual versão do Java usar, quais bibliotecas (dependências) baixar e como rodar o projeto.
+  Depois de mudar este arquivo: .\mvnw.cmd clean install (ou mvn clean install), como no slide 12.
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <!-- "Pai" do projeto: já traz as versões certas de todas as bibliotecas do Spring (por isso elas não têm <version>). -->
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>4.1.1</version> <!-- Versão atual do Spring Initializr; o código da aula funciona igual. -->
+        <relativePath/>
+    </parent>
+
+    <!-- Identidade do projeto (como o "name" do package.json). -->
+    <groupId>br.com.ctinexus</groupId>
+    <artifactId>cti-nexus-api</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
+    <name>CTI Nexus API</name>
+    <description>Back-end do CTI Nexus: login com JWT, usuários e importação das planilhas</description>
+
+    <properties>
+        <java.version>21</java.version> <!-- JDK 21, o que vem com a extensão Java do VS Code. -->
+    </properties>
+
+    <dependencies>
+        <!-- Web: cria a API REST (controllers, GET/POST...) e já traz o servidor Tomcat na porta 8080. -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-webmvc</artifactId> <!-- No Spring Boot 3 chamava spring-boot-starter-web. -->
+        </dependency>
+
+        <!-- JPA: transforma classes Java em tabelas (model/) e faz INSERT/SELECT pelo repository/. -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-jpa</artifactId>
+        </dependency>
+
+        <!-- Driver do PostgreSQL: a "tomada" que liga o Java ao banco (Neon). Só é usado com o sistema rodando. -->
+        <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+
+        <!-- Segurança: Spring Security (login, BCrypt, bloquear rotas sem token). Slide 10. -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-security</artifactId>
+        </dependency>
+
+        <!-- Validação dos dados que chegam na API (@NotBlank, @Email...) nos DTOs. Slide 10. -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-validation</artifactId>
+        </dependency>
+
+        <!-- JWT (biblioteca JJWT): gerar e conferir o token, o "crachá digital". Slide 11. -->
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-api</artifactId> <!-- O que o nosso código usa. -->
+            <version>0.12.6</version>
+        </dependency>
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-impl</artifactId> <!-- O "motor" por trás, só na hora de rodar. -->
+            <version>0.12.6</version>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-jackson</artifactId> <!-- Converte o conteúdo do token para JSON. -->
+            <version>0.12.6</version>
+            <scope>runtime</scope>
+        </dependency>
+
+        <!-- ===== SÓ PARA OS TESTES (scope test: não vai para o sistema publicado) ===== -->
+        <!-- JUnit + MockMvc: simula as chamadas do Thunder Client dentro de um teste automático (mvn test). -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-webmvc-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!-- H2: banco temporário em memória, só durante o teste (não precisa do Neon para testar). -->
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <!-- Permite rodar com: mvn spring-boot:run -->
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
+</project>

@@ -12,8 +12,9 @@ Referências da atividade: plano de ensino 5.01-FR-97 v.4 (PI-2 2026), com stack
 
 ## Estrutura
 
-- `frontend-vue/`: única parte implementada. Vue 3 + Vite + Tailwind CSS v4 + Pinia + `xlsx` (SheetJS) para ler planilhas.
-- `backend-java/`, `analytics-python/`, `database/`: por enquanto só arquivos vazios (Spring Boot, Pandas/Matplotlib e PostgreSQL planejados).
+- `frontend-vue/`: Vue 3 + Vite + Tailwind CSS v4 + Pinia + `xlsx` (SheetJS) para ler planilhas.
+- `backend-java/`: Spring Boot 4.1 (Java 21), pacote `br.com.ctinexus`, segue a Aula 10 de back-end (JWT). Feito: cadastro (pedido de acesso, entra PENDENTE), login com BCrypt + JWT, `/api/auth/me`, tela Usuários (`/api/admin/usuarios`, exige a permissão `gerenciar_usuarios`). Pastas em inglês (model, repository, dto, service, security, config, controller), classes em português e comentadas como no front. As permissões ficam no enum `Papel` (mesmos códigos de `constants/permissoes.js`) e viram authorities no `JwtFiltroAutenticacao`. Senhas e chave vêm de variáveis de ambiente, lidas também do `backend-java/.env` (só local, ignorado pelo Git; modelo em `.env.example`; banco no Neon, região sa-east-1); `DadosIniciais` cria o 1º administrador. Testes: `mvn test` (H2 em memória). Detalhes no `backend-java/README.md`. Ainda não ligado ao front.
+- `analytics-python/`, `database/`: por enquanto só arquivos vazios (Pandas/Matplotlib e PostgreSQL planejados).
 - `landing.html`: landing page institucional independente do app Vue.
 
 ## Como rodar
