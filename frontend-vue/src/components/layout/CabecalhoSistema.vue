@@ -18,7 +18,7 @@
               <!-- Pedidos de acesso esperando aprovação, ao lado de "Usuários". No celular fica no canto, sem ocupar espaço no menu. -->
               <template v-if="item.link === '/usuarios' && pedidos">
                 <span class="absolute -top-1 right-0 sm:static sm:ml-1 inline-grid place-items-center min-w-4 h-4 sm:min-w-5 sm:h-5 px-1 sm:px-1.5 rounded-full bg-blue-primary text-[10px] sm:text-xs leading-none text-white align-middle" aria-hidden="true">{{ pedidos }}</span>
-                <span class="sr-only">({{ pedidos }} {{ pedidos === 1 ? 'pedido de acesso aguardando' : 'pedidos de acesso aguardando' }})</span>
+                <span class="sr-only">({{ pedidos }} {{ pedidos === 1 ? 'pedido aguardando' : 'pedidos aguardando' }})</span>
               </template>
             </a>
           </li>
@@ -69,7 +69,7 @@ const rota = useRoute() // Tela aberta agora (rota.path, ex.: '/upload').
 const router = useRouter()
 
 const usuarios = useUsuariosStore()
-const pedidos = computed(() => usuarios.pedidosPendentes.length) // Pedidos de acesso esperando o administrador.
+const pedidos = computed(() => usuarios.quantidadeAguardando) // Pedidos de acesso e de nova senha esperando o administrador.
 
 const menu = computed(() => MENU.filter(item => auth.pode(PERMISSAO_DA_TELA[item.link]))) // Só as telas que o papel pode abrir.
 

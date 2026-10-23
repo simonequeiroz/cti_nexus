@@ -1,6 +1,6 @@
 <!-- Formulário de cadastro e edição de usuário. Sem "usuario" é um cadastro novo; com ele, edição (senha em branco = manter). -->
 <template>
-  <CartaoPainel :titulo="editando ? `Editar ${usuario.nome}` : 'Novo usuário'" :descricao="editando ? 'Deixe a senha em branco para manter a atual.' : 'O acesso vale assim que você cadastrar.'">
+  <CartaoPainel :titulo="editando ? `Editar ${usuario.nome}` : 'Novo usuário'" :descricao="editando ? (proprioUsuario ? 'Deixe a senha em branco para manter a atual.' : 'Deixe a senha em branco para manter a atual. Uma nova senha será temporária e deverá ser alterada no próximo acesso.') : 'O acesso é liberado no cadastro. A senha informada é temporária e deverá ser alterada no primeiro acesso.'">
     <form class="p-6 grid grid-cols-1 md:grid-cols-2 gap-5" novalidate @submit.prevent="salvar">
       <CampoTexto v-model="dados.nome" rotulo="Nome completo" autocomplete="off" :erro="erros.nome" />
       <CampoTexto v-model="dados.email" rotulo="E-mail" type="email" autocomplete="off" :erro="erros.email" />

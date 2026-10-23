@@ -176,6 +176,78 @@ class AutenticacaoFluxoTest {
                 .andExpect(jsonPath("$.campos.papel").exists());
     }
 
+    @Test
+    void esqueciMinhaSenhaComSenhaTemporaria() throws Exception {
+        String tokenAdmin = login("admin@ctinexus.com", "123456");
+
+        // Cria a Bia, que troca a senha inicial (o administrador cadastrou, então ela é obrigada a trocar).
+        String resposta = api.perform(post("/api/admin/usuarios").header("Authorization", "Bearer " + tokenAdmin)
+                        .contentType(MediaType.APPLICATION_JSON).content("""
+                                { "nome": "Bia Costa", "email": "bia@ctinexus.com", "senha": "inicial1", "papel": "ANALISTA" }
+                                """))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.deveTrocarSenha").value(true))
+                .andReturn().getResponse().getContentAsString();
+        int idBia = JsonPath.read(resposta, "$.id");
+
+        // Com senha temporária: login funciona, mas sem permissão nenhuma até trocar.
+        String tokenBia = login("bia@ctinexus.com", "inicial1");
+        api.perform(get("/api/auth/me").header("Authorization", "Bearer " + tokenBia))
+                .andExpect(jsonPath("$.deveTrocarSenha").value(true))
+                .andExpect(jsonPath("$.permissoes").isEmpty());
+        trocarSenha(tokenBia, "inicial1", "minhaSenha1");
+        api.perform(get("/api/auth/me").header("Authorization", "Bearer " + tokenBia))
+                .andExpect(jsonPath("$.deveTrocarSenha").value(false))
+                .andExpect(jsonPath("$.permissoes").isNotEmpty());
+
+        // Esqueceu a senha: o pedido fica marcado. E-mail que não existe recebe a mesma resposta (200).
+        api.perform(post("/api/auth/esqueci-senha").contentType(MediaType.APPLICATION_JSON)
+                        .content("{ \"email\": \"bia@ctinexus.com\" }"))
+                .andExpect(status().isOk());
+        api.perform(post("/api/auth/esqueci-senha").contentType(MediaType.APPLICATION_JSON)
+                        .content("{ \"email\": \"ninguem@ctinexus.com\" }"))
+                .andExpect(status().isOk());
+        api.perform(get("/api/admin/usuarios").header("Authorization", "Bearer " + tokenAdmin))
+                .andExpect(jsonPath("$[?(@.email == 'bia@ctinexus.com')].pediuNovaSenhaEm").isNotEmpty());
+
+        // Administrador define a senha temporária; a antiga para de funcionar.
+        api.perform(patch("/api/admin/usuarios/" + idBia + "/senha").header("Authorization", "Bearer " + tokenAdmin)
+                        .contentType(MediaType.APPLICATION_JSON).content("{ \"senha\": \"temp2026\" }"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.deveTrocarSenha").value(true));
+        api.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON)
+                        .content("{ \"email\": \"bia@ctinexus.com\", \"senha\": \"minhaSenha1\" }"))
+                .andExpect(status().isUnauthorized());
+
+        // Entra com a temporária: enquanto não troca, não abre nada que exija permissão.
+        String tokenTemp = login("bia@ctinexus.com", "temp2026");
+        api.perform(get("/api/admin/usuarios").header("Authorization", "Bearer " + tokenTemp))
+                .andExpect(status().isForbidden());
+
+        // Senha atual errada ou nova igual à atual -> 400 no campo certo.
+        api.perform(post("/api/auth/trocar-senha").header("Authorization", "Bearer " + tokenTemp)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{ \"senhaAtual\": \"errada\", \"senhaNova\": \"outra123\" }"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.campos.senhaAtual").exists());
+        api.perform(post("/api/auth/trocar-senha").header("Authorization", "Bearer " + tokenTemp)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{ \"senhaAtual\": \"temp2026\", \"senhaNova\": \"temp2026\" }"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.campos.senhaNova").exists());
+
+        trocarSenha(tokenTemp, "temp2026", "novaDaBia1");
+        login("bia@ctinexus.com", "novaDaBia1"); // Agora a senha é só dela.
+    }
+
+    private void trocarSenha(String token, String atual, String nova) throws Exception {
+        api.perform(post("/api/auth/trocar-senha").header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{ \"senhaAtual\": \"" + atual + "\", \"senhaNova\": \"" + nova + "\" }"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.deveTrocarSenha").value(false));
+    }
+
     // Faz login e devolve só o token.
     private String login(String email, String senha) throws Exception {
         String resposta = api.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON)

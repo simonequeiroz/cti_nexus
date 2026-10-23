@@ -9,7 +9,7 @@
   <form v-else class="space-y-5" novalidate @submit.prevent="enviar">
     <CampoTexto v-model="dados.nome" rotulo="Nome completo" autocomplete="name" :erro="erros.nome" />
     <CampoTexto v-model="dados.email" rotulo="E-mail corporativo" type="email" autocomplete="email" placeholder="voce@empresa.com" :erro="erros.email" />
-    <CampoTexto v-model="dados.cargo" rotulo="Cargo ou área (opcional)" autocomplete="organization-title" placeholder="Ex.: Operações, Diretoria comercial" />
+    <CampoTexto v-model="dados.cargo" rotulo="Cargo ou área (opcional)" autocomplete="organization-title" placeholder="Ex.: Analista de Operações, Gestor, Administrador" />
     <CampoTexto v-model="dados.senha" rotulo="Senha" type="password" autocomplete="new-password" :erro="erros.senha" />
     <CampoTexto v-model="dados.confirmacao" rotulo="Confirmar senha" type="password" autocomplete="new-password" :erro="erros.confirmacao" />
 

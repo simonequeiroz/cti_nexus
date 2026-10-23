@@ -1,6 +1,7 @@
 package br.com.ctinexus.service;
 
 import br.com.ctinexus.dto.AlterarSituacaoRequest;
+import br.com.ctinexus.dto.SenhaTemporariaRequest;
 import br.com.ctinexus.dto.UsuarioAdminRequest;
 import br.com.ctinexus.dto.UsuarioResponse;
 import br.com.ctinexus.model.Papel;
@@ -52,6 +53,7 @@ public class UsuarioService {
         usuario.setSenhaHash(passwordEncoder.encode(dados.senha())); // Hash BCrypt.
         usuario.setPapel(dados.papel());
         usuario.setSituacao(SituacaoUsuario.ATIVO); // Cadastrado pelo administrador = já pode entrar.
+        usuario.setDeveTrocarSenha(true);           // O administrador sabe esta senha: no 1º login a pessoa cria a dela.
         return UsuarioResponse.de(usuarioRepository.save(usuario));
     }
 
@@ -81,6 +83,9 @@ public class UsuarioService {
         if (dados.senha() != null && !dados.senha().isEmpty()) { // Senha em branco = manter a atual.
             conferirSenha(dados.senha());
             usuario.setSenhaHash(passwordEncoder.encode(dados.senha()));
+            // Senha de outra pessoa digitada pelo administrador vale como temporária. A própria senha, não.
+            usuario.setDeveTrocarSenha(!usuario.getId().equals(quemAltera.getId()));
+            usuario.setPediuNovaSenhaEm(null);
         }
         return UsuarioResponse.de(usuarioRepository.save(usuario)); // UPDATE no banco.
     }
@@ -110,6 +115,23 @@ public class UsuarioService {
 
         usuario.setPapel(novoPapel);
         usuario.setSituacao(dados.situacao());
+        return UsuarioResponse.de(usuarioRepository.save(usuario));
+    }
+
+    // Responde a um "Esqueci minha senha": define a senha temporária. No próximo login a pessoa é obrigada a trocar.
+    @Transactional
+    public UsuarioResponse definirSenhaTemporaria(Long id, SenhaTemporariaRequest dados, Usuario quemAltera) {
+        Usuario usuario = buscar(id);
+        if (usuario.getId().equals(quemAltera.getId())) {
+            throw new RegraDeNegocioException(HttpStatus.CONFLICT, "Para mudar a sua própria senha, use Editar.");
+        }
+        if (usuario.getSituacao() != SituacaoUsuario.ATIVO) {
+            throw new RegraDeNegocioException(HttpStatus.CONFLICT, "Só usuários ativos podem receber senha temporária.");
+        }
+
+        usuario.setSenhaHash(passwordEncoder.encode(dados.senha())); // Também vira hash BCrypt.
+        usuario.setDeveTrocarSenha(true);   // Obriga a trocar no próximo login.
+        usuario.setPediuNovaSenhaEm(null);  // Pedido atendido.
         return UsuarioResponse.de(usuarioRepository.save(usuario));
     }
 

@@ -67,6 +67,46 @@ describe('pedido de acesso', () => {
   })
 })
 
+describe('esqueci minha senha', () => {
+  it('pedido → senha temporária → troca obrigatória no próximo login', async () => {
+    const auth = useAutenticacaoStore()
+    expect(await auth.pedirNovaSenha('analista@ctinexus.com')).toBe('')
+    expect(await auth.pedirNovaSenha('ninguem@ctinexus.com')).toBe('') // Mesma resposta: não revela quem existe.
+
+    // Administrador vê o pedido (e o número ao lado de "Usuários") e define a senha temporária.
+    const store = await entrarComoAdministrador()
+    const [pedido] = store.pedidosNovaSenha
+    expect(pedido.email).toBe('analista@ctinexus.com')
+    expect(store.quantidadeAguardando).toBe(1)
+    expect(await store.definirSenhaTemporaria(pedido.id, '123')).toMatch(/6 caracteres/)
+    expect(await store.definirSenhaTemporaria(pedido.id, 'temp2026')).toBe('')
+    expect(store.pedidosNovaSenha).toHaveLength(0)
+
+    // Entra com a temporária: só a tela de troca, sem permissão nenhuma.
+    auth.logout()
+    expect(await auth.login('analista@ctinexus.com', 'temp2026')).toBe(true)
+    expect(auth.precisaTrocarSenha).toBe(true)
+    expect(auth.telaDeEntrada).toBe('/trocar-senha')
+    expect(auth.pode('enviar_planilha')).toBe(false)
+
+    expect((await auth.trocarSenha({ senhaAtual: 'errada', senhaNova: 'minha123', confirmacao: 'minha123' })).senhaAtual).toMatch(/não confere/)
+    expect(await auth.trocarSenha({ senhaAtual: 'temp2026', senhaNova: 'minha123', confirmacao: 'minha123' })).toEqual({})
+    expect(auth.precisaTrocarSenha).toBe(false)
+    expect(auth.telaDeEntrada).toBe('/upload')
+    expect(auth.pode('enviar_planilha')).toBe(true)
+  })
+
+  it('usuário cadastrado pelo administrador cria a própria senha no primeiro acesso', async () => {
+    const store = await entrarComoAdministrador()
+    await store.cadastrar({ nome: 'Bruno Melo', email: 'bruno@ctinexus.com', senha: 'abc123', confirmacao: 'abc123', papel: 'gestor' })
+
+    const auth = useAutenticacaoStore()
+    auth.logout()
+    await auth.login('bruno@ctinexus.com', 'abc123')
+    expect(auth.telaDeEntrada).toBe('/trocar-senha')
+  })
+})
+
 describe('tela Usuários', () => {
   it('cadastra já com papel e edita nome e papel', async () => {
     const store = await entrarComoAdministrador()

@@ -10,6 +10,7 @@ import PaginaValidacao from '../views/PaginaValidacao.vue'
 import PaginaRelatorio from '../views/PaginaRelatorio.vue'
 import PaginaDashboard from '../views/PaginaDashboard.vue'
 import PaginaUsuarios from '../views/PaginaUsuarios.vue'
+import PaginaTrocarSenha from '../views/PaginaTrocarSenha.vue'
 
 const router = createRouter({
   // Endereços com # (ex.: #/upload): trocar de tela não recarrega a página, então a planilha carregada não se perde,
@@ -20,6 +21,7 @@ const router = createRouter({
     { path: '/', component: PaginaInicial }, // Página de apresentação, aberta para todos.
     { path: '/login', component: PaginaLogin, meta: { publica: true } },
     { path: '/cadastro', component: PaginaCadastro, meta: { publica: true } }, // Pedido de acesso.
+    { path: '/trocar-senha', component: PaginaTrocarSenha, meta: { trocarSenha: true } }, // Depois de entrar com senha temporária.
     { path: '/upload', component: PaginaUpload, meta: { permissao: 'enviar_planilha' } },
     { path: '/validacao', component: PaginaValidacao, meta: { permissao: 'corrigir_dados' } },
     { path: '/relatorio', component: PaginaRelatorio, meta: { permissao: 'ver_relatorio' } },
@@ -35,6 +37,9 @@ router.beforeEach((to) => {
   const telaDeEntrada = auth.telaDeEntrada
 
   if (to.meta.permissao && !auth.estaAutenticado) return '/login' // Tela interna sem login: vai para o login.
+  // "Crie sua nova senha": só para quem entrou com senha temporária. Quem já trocou vai para a tela de sempre.
+  if (to.meta.trocarSenha) return auth.estaAutenticado ? (auth.precisaTrocarSenha ? undefined : telaDeEntrada) : '/login'
+  // Com senha temporária, pode() responde não para tudo, então a linha de baixo manda para /trocar-senha.
   if (to.meta.permissao && !auth.pode(to.meta.permissao)) return telaDeEntrada // Ex.: gestor abrindo /usuarios.
   if (to.meta.publica && auth.estaAutenticado) return telaDeEntrada // Já entrou: não precisa de login nem de cadastro.
 })

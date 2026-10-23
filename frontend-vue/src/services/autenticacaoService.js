@@ -20,3 +20,15 @@ export async function buscarUsuarioLogado() {
   const { data } = await api.get('/auth/me')
   return data
 }
+
+// POST /api/auth/esqueci-senha  →  marca o pedido para o administrador (resposta igual, exista o e-mail ou não)
+export async function esqueciSenha(email) {
+  const { data } = await api.post('/auth/esqueci-senha', { email })
+  return data
+}
+
+// POST /api/auth/trocar-senha  →  a pessoa logada troca a própria senha (obrigatório depois de senha temporária)
+export async function trocarSenha(senhaAtual, senhaNova) {
+  const { data } = await api.post('/auth/trocar-senha', { senhaAtual, senhaNova })
+  return data
+}

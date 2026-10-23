@@ -1,8 +1,9 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { PAPEIS, temPermissao, telaInicial } from '../constants/permissoes'
-import { entrar, buscarUsuarioLogado } from '../services/autenticacaoService' // Rotas /auth da API.
-import { usuarioDaApi, mensagemDeErro } from '../utils/usuarioApi'
+import { entrar, buscarUsuarioLogado, esqueciSenha, trocarSenha as trocarSenhaNaApi } from '../services/autenticacaoService' // Rotas /auth da API.
+import { usuarioDaApi, mensagemDeErro, errosDeCampo } from '../utils/usuarioApi'
+import { validarTrocaSenha } from '../utils/validacaoUsuario'
 
 // Login pela API do Spring (services/autenticacaoService.js): POST /auth/login devolve o token (o "crachá") e os dados do usuário.
 // O token fica no sessionStorage com a chave 'token', que é onde o services/api.js procura para mandar em toda chamada.
@@ -29,8 +30,8 @@ function lerSessao() { // Recupera o usuário logado se a página for recarregad
 
 // Só o que as telas precisam saber de quem entrou (sem cargo, situação etc.).
 function resumo(usuario) {
-  const { id, nome, email, papel } = usuarioDaApi(usuario)
-  return { id, nome, email, papel }
+  const { id, nome, email, papel, deveTrocarSenha } = usuarioDaApi(usuario)
+  return { id, nome, email, papel, deveTrocarSenha }
 }
 
 export const useAutenticacaoStore = defineStore('auth', () => {
@@ -48,9 +49,14 @@ export const useAutenticacaoStore = defineStore('auth', () => {
 
   const nomeDoPapel = computed(() => PAPEIS[usuario.value?.papel]?.nome ?? '') // Ex.: "Analista de Operações".
 
-  const telaDeEntrada = computed(() => telaInicial(usuario.value?.papel)) // Primeira tela depois do login.
+  // Entrou com senha temporária (dada pelo administrador): precisa criar a própria antes de usar o sistema.
+  const precisaTrocarSenha = computed(() => usuario.value?.deveTrocarSenha === true)
+
+  // Primeira tela depois do login. Com senha temporária, sempre a tela "Crie sua nova senha".
+  const telaDeEntrada = computed(() => precisaTrocarSenha.value ? '/trocar-senha' : telaInicial(usuario.value?.papel))
 
   function pode(permissao) { // Ex.: pode('corrigir_dados'). Usado nas telas para mostrar ou esconder ações.
+    if (precisaTrocarSenha.value) return false // Igual ao back-end: sem permissão até trocar a senha.
     return temPermissao(usuario.value?.papel, permissao)
   }
 
@@ -88,9 +94,34 @@ export const useAutenticacaoStore = defineStore('auth', () => {
     if (!estaAutenticado.value) return
     try {
       const dados = await buscarUsuarioLogado() // GET /auth/me
-      guardarSessao(sessionStorage.getItem(CHAVE_TOKEN), resumo(dados))
+      atualizarUsuario(resumo(dados)) // O token continua o mesmo.
     } catch {
       // Sem resposta do servidor: continua com a sessão guardada.
+    }
+  }
+
+  // "Esqueci minha senha" na tela de login: avisa o administrador, que vai passar uma senha temporária.
+  // Devolve '' quando deu certo, ou a mensagem do problema.
+  async function pedirNovaSenha(email) {
+    if (!email.trim()) return 'Informe o seu e-mail.'
+    try {
+      await esqueciSenha(email.trim()) // POST /auth/esqueci-senha
+      return ''
+    } catch (e) {
+      return mensagemDeErro(e)
+    }
+  }
+
+  // Tela "Crie sua nova senha". dados: { senhaAtual, senhaNova, confirmacao }. Devolve os erros por campo ({} = deu certo).
+  async function trocarSenha(dados) {
+    const erros = validarTrocaSenha(dados)
+    if (Object.keys(erros).length) return erros
+    try {
+      const atualizado = await trocarSenhaNaApi(dados.senhaAtual, dados.senhaNova) // POST /auth/trocar-senha
+      atualizarUsuario(resumo(atualizado)) // Agora deveTrocarSenha = false; o token continua o mesmo.
+      return {}
+    } catch (e) {
+      return errosDeCampo(e) // Ex.: { senhaAtual: 'A senha atual não confere.' }
     }
   }
 
@@ -104,13 +135,17 @@ export const useAutenticacaoStore = defineStore('auth', () => {
     }
   }
 
-  function atualizarSessao(dados) { // O usuário logado editou o próprio nome ou e-mail na tela Usuários.
-    usuario.value = { ...usuario.value, nome: dados.nome, email: dados.email }
+  function atualizarUsuario(dados) { // Troca os dados de quem está logado, sem mexer no token.
+    usuario.value = dados
     try {
-      sessionStorage.setItem(CHAVE_SESSAO, JSON.stringify(usuario.value))
+      sessionStorage.setItem(CHAVE_SESSAO, JSON.stringify(dados))
     } catch {
-      // Nada a fazer.
+      // Sem sessionStorage vale até recarregar a página.
     }
+  }
+
+  function atualizarSessao(dados) { // O usuário logado editou o próprio nome ou e-mail na tela Usuários.
+    atualizarUsuario({ ...usuario.value, nome: dados.nome, email: dados.email })
   }
 
   function logout() { // Remove o usuário logado e o token.
@@ -125,7 +160,7 @@ export const useAutenticacaoStore = defineStore('auth', () => {
 
   return {
     usuario, carregando, erro,
-    estaAutenticado, primeiroNome, nomeDoPapel, telaDeEntrada,
-    pode, login, loginDemonstracao, conferirSessao, logout, atualizarSessao
+    estaAutenticado, primeiroNome, nomeDoPapel, precisaTrocarSenha, telaDeEntrada,
+    pode, login, loginDemonstracao, conferirSessao, pedirNovaSenha, trocarSenha, logout, atualizarSessao
   }
 })

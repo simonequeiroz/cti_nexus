@@ -11,7 +11,9 @@ export function usuarioDaApi(u) { // Um usuário que veio da API -> formato das 
     papel: u.papel ? u.papel.toLowerCase() : null, // null = pedido de acesso ainda sem papel.
     ativo: u.situacao === 'ATIVO',
     pendente: u.situacao === 'PENDENTE',
-    criadoEm: u.criadoEm
+    criadoEm: u.criadoEm,
+    deveTrocarSenha: u.deveTrocarSenha ?? false, // Entrou com senha temporária: precisa criar a própria.
+    pediuNovaSenhaEm: u.pediuNovaSenhaEm ?? null // Clicou em "Esqueci minha senha" e espera o administrador.
   }
 }
 

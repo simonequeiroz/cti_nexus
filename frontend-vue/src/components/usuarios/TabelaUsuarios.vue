@@ -12,6 +12,8 @@
         <td class="px-4 py-3"><EtiquetaBase :cor="COR_DO_PAPEL[usuario.papel]">{{ PAPEIS[usuario.papel].nome }}</EtiquetaBase></td>
         <td class="px-4 py-3">
           <EtiquetaBase :cor="usuario.ativo ? 'bg-green/15 text-green-dark' : undefined">{{ usuario.ativo ? 'Ativo' : 'Desativado' }}</EtiquetaBase>
+          <!-- Ainda não criou a própria senha (entrou com a que o administrador definiu). -->
+          <EtiquetaBase v-if="usuario.ativo && usuario.deveTrocarSenha" class="ml-1">Senha temporária</EtiquetaBase>
         </td>
         <td class="px-4 py-3 font-mono whitespace-nowrap">{{ usuario.criadoEm ? new Date(usuario.criadoEm).toLocaleDateString('pt-BR') : 'demonstração' }}</td>
         <td class="px-4 pr-6 py-3 text-right whitespace-nowrap">

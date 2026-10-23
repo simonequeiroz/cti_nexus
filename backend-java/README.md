@@ -51,12 +51,19 @@ Ele fica só no seu PC (o Git ignora).
 | POST | `/api/auth/cadastro` | todos | Pedido de acesso `{nome, email, cargo?, senha}` → 201, fica PENDENTE |
 | POST | `/api/auth/login` | todos | `{email, senha}` → `{token, tipo: "Bearer", usuario}` |
 | GET | `/api/auth/me` | logado | Dados de quem está logado |
+| POST | `/api/auth/esqueci-senha` | todos | `{email}` → marca o pedido para o administrador (resposta sempre igual) |
+| POST | `/api/auth/trocar-senha` | logado | `{senhaAtual, senhaNova}` → troca a própria senha (obrigatório com senha temporária) |
 | GET | `/api/privado` | logado | Rota de teste da aula |
 | GET | `/api/admin/usuarios` | administrador | Lista usuários e pedidos |
 | POST | `/api/admin/usuarios` | administrador | Cadastra `{nome, email, senha, papel}`, já ativo |
 | PUT | `/api/admin/usuarios/{id}` | administrador | Edita `{nome, email, senha?, papel}` (senha vazia = mantém) |
 | PATCH | `/api/admin/usuarios/{id}/status` | administrador | `{situacao: "ATIVO", papel: "ANALISTA"}` aprova; `{situacao: "DESATIVADO"}` desativa |
+| PATCH | `/api/admin/usuarios/{id}/senha` | administrador | `{senha}` → senha temporária (troca obrigatória no próximo login) |
 | DELETE | `/api/admin/usuarios/{id}` | administrador | Recusa um pedido pendente |
+
+**Senha temporária:** enquanto `deveTrocarSenha` for `true`, o login funciona mas o usuário fica sem permissão nenhuma
+(só `/api/auth/me` e `/api/auth/trocar-senha`). Vale para a senha definida no "Esqueci minha senha", no cadastro feito
+pelo administrador e quando ele edita a senha de outra pessoa.
 
 Respostas de erro: `{status, mensagem, campos}`. 400 = campo inválido, 401 = sem login ou senha errada,
 403 = sem permissão ou conta pendente/desativada, 409 = e-mail repetido ou regra de proteção.

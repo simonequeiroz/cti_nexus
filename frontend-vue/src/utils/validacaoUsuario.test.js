@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { validarUsuario, validarPedidoAcesso, ultimoAdministrador } from './validacaoUsuario'
+import { validarUsuario, validarPedidoAcesso, ultimoAdministrador, validarTrocaSenha, validarSenhaTemporaria } from './validacaoUsuario'
 
 const USUARIOS = [
   { id: 1, nome: 'Rita Andrade', email: 'admin@ctinexus.com', papel: 'administrador', ativo: true },
@@ -56,5 +56,24 @@ describe('ultimoAdministrador', () => {
     expect(ultimoAdministrador(USUARIOS, 1)).toBe(true)
     expect(ultimoAdministrador(USUARIOS, 2)).toBe(false)
     expect(ultimoAdministrador([...USUARIOS, { id: 3, papel: 'administrador', ativo: true }], 1)).toBe(false)
+  })
+})
+
+describe('validarTrocaSenha', () => {
+  it('aceita senha nova diferente da atual e confirmada', () => {
+    expect(validarTrocaSenha({ senhaAtual: 'temp2026', senhaNova: 'minha123', confirmacao: 'minha123' })).toEqual({})
+  })
+
+  it('exige a senha atual e uma nova diferente, com pelo menos 6 caracteres', () => {
+    expect(Object.keys(validarTrocaSenha({}))).toEqual(['senhaAtual', 'senhaNova'])
+    expect(validarTrocaSenha({ senhaAtual: 'temp2026', senhaNova: 'temp2026', confirmacao: 'temp2026' }).senhaNova).toMatch(/diferente/)
+    expect(validarTrocaSenha({ senhaAtual: 'temp2026', senhaNova: 'minha123', confirmacao: 'outra' }).confirmacao).toMatch(/não são iguais/)
+  })
+})
+
+describe('validarSenhaTemporaria', () => {
+  it('exige pelo menos 6 caracteres', () => {
+    expect(validarSenhaTemporaria('12345')).toMatch(/6 caracteres/)
+    expect(validarSenhaTemporaria('temp2026')).toBe('')
   })
 })

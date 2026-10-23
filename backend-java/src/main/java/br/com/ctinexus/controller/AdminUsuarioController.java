@@ -1,6 +1,7 @@
 package br.com.ctinexus.controller;
 
 import br.com.ctinexus.dto.AlterarSituacaoRequest;
+import br.com.ctinexus.dto.SenhaTemporariaRequest;
 import br.com.ctinexus.dto.UsuarioAdminRequest;
 import br.com.ctinexus.dto.UsuarioResponse;
 import br.com.ctinexus.model.Usuario;
@@ -52,6 +53,14 @@ public class AdminUsuarioController {
                                            @RequestBody @Valid AlterarSituacaoRequest dados,
                                            @AuthenticationPrincipal Usuario quemAltera) { // Quem está logado.
         return usuarioService.alterarSituacao(id, dados, quemAltera);
+    }
+
+    // PATCH /api/admin/usuarios/{id}/senha  -> senha temporária para quem pediu "Esqueci minha senha".
+    @PatchMapping("/{id}/senha")
+    public UsuarioResponse definirSenhaTemporaria(@PathVariable Long id,
+                                                  @RequestBody @Valid SenhaTemporariaRequest dados,
+                                                  @AuthenticationPrincipal Usuario quemAltera) {
+        return usuarioService.definirSenhaTemporaria(id, dados, quemAltera);
     }
 
     // DELETE /api/admin/usuarios/{id}  -> recusar pedido de acesso (só pendentes).

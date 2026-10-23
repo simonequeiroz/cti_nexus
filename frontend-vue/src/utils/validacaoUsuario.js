@@ -44,3 +44,18 @@ export function ultimoAdministrador(usuarios, id) {
   const adminsAtivos = usuarios.filter(u => u.papel === 'administrador' && u.ativo)
   return adminsAtivos.length === 1 && adminsAtivos[0].id === id
 }
+
+// Tela "Crie sua nova senha" (depois de entrar com senha temporária). dados: { senhaAtual, senhaNova, confirmacao }.
+export function validarTrocaSenha(dados) {
+  const erros = {}
+  if (!dados.senhaAtual) erros.senhaAtual = 'Informe a senha temporária.'
+  if ((dados.senhaNova ?? '').length < SENHA_MINIMA) erros.senhaNova = `A senha precisa ter pelo menos ${SENHA_MINIMA} caracteres.`
+  else if (dados.senhaNova === dados.senhaAtual) erros.senhaNova = 'A nova senha precisa ser diferente da atual.'
+  else if (dados.senhaNova !== dados.confirmacao) erros.confirmacao = 'As senhas não são iguais.'
+  return erros
+}
+
+// Senha temporária que o administrador passa para quem pediu "Esqueci minha senha".
+export function validarSenhaTemporaria(senha) {
+  return (senha ?? '').length < SENHA_MINIMA ? `A senha temporária precisa ter pelo menos ${SENHA_MINIMA} caracteres.` : ''
+}

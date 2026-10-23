@@ -1,4 +1,4 @@
-<!-- Campo de formulário com rótulo e mensagem de erro opcional. O slot "acao" coloca um botão dentro do campo (ex.: Mostrar senha). -->
+<!-- Campo de formulário com rótulo e mensagem de erro opcional. O slot "acao" coloca um botão dentro do campo (ex.: o olho de mostrar senha). -->
 <template>
   <div>
     <label :for="id" class="block text-sm font-medium mb-1.5">{{ rotulo }}</label>

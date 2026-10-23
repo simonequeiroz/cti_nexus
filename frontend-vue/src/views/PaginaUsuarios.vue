@@ -18,6 +18,7 @@
     </p>
 
     <PedidosAcesso v-if="store.pedidosPendentes.length" class="mt-6" @aviso="mostrarAviso" />
+    <PedidosNovaSenha v-if="store.pedidosNovaSenha.length" class="mt-6" @aviso="mostrarAviso" />
 
     <!-- :key recria o formulário ao trocar de usuário, para não levar dados de um para o outro. -->
     <FormularioUsuario
@@ -42,6 +43,7 @@ import BotaoBase from '../components/ui/BotaoBase.vue'
 import FormularioUsuario from '../components/usuarios/FormularioUsuario.vue'
 import TabelaUsuarios from '../components/usuarios/TabelaUsuarios.vue'
 import PedidosAcesso from '../components/usuarios/PedidosAcesso.vue'
+import PedidosNovaSenha from '../components/usuarios/PedidosNovaSenha.vue'
 import { useUsuariosStore } from '../stores/usuariosStore'
 import { useAutenticacaoStore } from '../stores/autenticacaoStore'
 

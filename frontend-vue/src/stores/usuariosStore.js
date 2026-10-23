@@ -3,7 +3,7 @@ import { ref, computed } from 'vue'
 import { PAPEIS } from '../constants/permissoes'
 import * as autenticacaoService from '../services/autenticacaoService' // Pedido de acesso (/auth/cadastro).
 import * as usuariosService from '../services/usuariosService' // Rotas /admin/usuarios da API.
-import { validarUsuario, validarPedidoAcesso, ultimoAdministrador } from '../utils/validacaoUsuario'
+import { validarUsuario, validarPedidoAcesso, ultimoAdministrador, validarSenhaTemporaria } from '../utils/validacaoUsuario'
 import { usuarioDaApi, papelParaApi, mensagemDeErro, errosDeCampo } from '../utils/usuarioApi'
 
 // Usuários e pedidos de acesso, guardados no banco pelo back-end (tabela usuario, senha com BCrypt).
@@ -28,6 +28,14 @@ export const useUsuariosStore = defineStore('usuarios', () => {
   const pedidosPendentes = computed(() => usuarios.value
     .filter(u => u.pendente)
     .sort((a, b) => a.criadoEm.localeCompare(b.criadoEm))) // Mais antigo primeiro.
+
+  // Quem clicou em "Esqueci minha senha" e espera o administrador definir uma senha temporária. Mais antigo primeiro.
+  const pedidosNovaSenha = computed(() => usuarios.value
+    .filter(u => u.pediuNovaSenhaEm)
+    .sort((a, b) => a.pediuNovaSenhaEm.localeCompare(b.pediuNovaSenhaEm)))
+
+  // Número ao lado de "Usuários" na trilha e no menu do celular: tudo o que espera o administrador.
+  const quantidadeAguardando = computed(() => pedidosPendentes.value.length + pedidosNovaSenha.value.length)
 
   const quantidadeAtivos = computed(() => usuarios.value.filter(u => u.ativo).length)
 
@@ -106,6 +114,18 @@ export const useUsuariosStore = defineStore('usuarios', () => {
     return mudarSituacao(id, usuario.ativo ? 'DESATIVADO' : 'ATIVO')
   }
 
+  // Responde a um "Esqueci minha senha". A pessoa entra com esta senha e é obrigada a criar outra. Devolve '' ou o problema.
+  async function definirSenhaTemporaria(id, senha) {
+    const problema = validarSenhaTemporaria(senha)
+    if (problema) return problema
+    try {
+      atualizarNaLista(await usuariosService.definirSenhaTemporaria(id, senha)) // PATCH /admin/usuarios/{id}/senha
+      return ''
+    } catch (e) {
+      return mensagemDeErro(e)
+    }
+  }
+
   async function recusarPedido(id) { // Apaga o pedido: a pessoa nunca teve acesso, então não há histórico a guardar.
     try {
       await usuariosService.recusarPedido(id) // DELETE /admin/usuarios/{id}
@@ -132,7 +152,7 @@ export const useUsuariosStore = defineStore('usuarios', () => {
 
   return {
     usuarios, carregando, erro,
-    cadastrados, usuariosOrdenados, pedidosPendentes, quantidadeAtivos,
-    carregar, pedirAcesso, cadastrar, editar, aprovarPedido, recusarPedido, alternarAtivo
+    cadastrados, usuariosOrdenados, pedidosPendentes, pedidosNovaSenha, quantidadeAguardando, quantidadeAtivos,
+    carregar, pedirAcesso, cadastrar, editar, aprovarPedido, recusarPedido, alternarAtivo, definirSenhaTemporaria
   }
 })

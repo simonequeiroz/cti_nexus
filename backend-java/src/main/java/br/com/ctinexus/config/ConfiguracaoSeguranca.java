@@ -40,7 +40,7 @@ public class ConfiguracaoSeguranca {
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(regras -> regras
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()                   // "Pré-consulta" do navegador (CORS).
-                        .requestMatchers(HttpMethod.POST, "/api/auth/login", "/api/auth/cadastro").permitAll() // Públicas.
+                        .requestMatchers(HttpMethod.POST, "/api/auth/login", "/api/auth/cadastro", "/api/auth/esqueci-senha").permitAll() // Públicas.
                         .requestMatchers("/error").permitAll()                                    // Página de erro do Spring.
                         .requestMatchers("/api/admin/**").hasAuthority("gerenciar_usuarios")      // Só administrador.
                         .anyRequest().authenticated())                                           // O resto exige token.

@@ -148,8 +148,8 @@ const { recolhida, alternar } = useMenuLateral()
 
 // Pedidos de acesso esperando o administrador: aparecem como um número ao lado de "Usuários".
 const usuarios = useUsuariosStore()
-const pedidos = computed(() => usuarios.pedidosPendentes.length)
-const textoPedidos = computed(() => `${pedidos.value} ${pedidos.value === 1 ? 'pedido de acesso aguardando' : 'pedidos de acesso aguardando'}`)
+const pedidos = computed(() => usuarios.quantidadeAguardando) // Pedidos de acesso + pedidos de nova senha.
+const textoPedidos = computed(() => `${pedidos.value} ${pedidos.value === 1 ? 'pedido aguardando' : 'pedidos aguardando'}`)
 
 const temDados = computed(() => store.quantidadeLinhas > 0) // O dado já saiu do upload e seguiu pela trilha.
 

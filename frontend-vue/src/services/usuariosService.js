@@ -27,6 +27,12 @@ export async function alterarSituacao(id, situacao, papel = null) {
   return data
 }
 
+// PATCH /api/admin/usuarios/{id}/senha  →  senha temporária para quem pediu "Esqueci minha senha"
+export async function definirSenhaTemporaria(id, senha) {
+  const { data } = await api.patch(`/admin/usuarios/${id}/senha`, { senha })
+  return data
+}
+
 // DELETE /api/admin/usuarios/{id}  →  recusar pedido de acesso (só pendentes)
 export async function recusarPedido(id) {
   await api.delete(`/admin/usuarios/${id}`)

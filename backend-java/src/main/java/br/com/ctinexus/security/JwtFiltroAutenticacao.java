@@ -13,6 +13,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.List;
 
 // "Leitor que verifica o crachá" (slide 25). Roda ANTES de todo controller, em toda requisição.
 // Procura "Authorization: Bearer <token>" no cabeçalho (o front manda pelo services/api.js).
@@ -45,7 +46,9 @@ public class JwtFiltroAutenticacao extends OncePerRequestFilter { // OncePerRequ
                         .filter(u -> u.getSituacao() == SituacaoUsuario.ATIVO && u.getPapel() != null)
                         .ifPresent(usuario -> {
                             // As permissões do papel viram "authorities" (é o que hasAuthority(...) confere).
-                            var permissoes = usuario.getPapel().getPermissoes().stream()
+                            // Com senha temporária, nenhuma: só consegue ver os próprios dados e trocar a senha.
+                            List<String> codigos = usuario.isDeveTrocarSenha() ? List.of() : usuario.getPapel().getPermissoes();
+                            var permissoes = codigos.stream()
                                     .map(SimpleGrantedAuthority::new)
                                     .toList();
                             // Crachá aceito: guarda o usuário no contexto de segurança desta requisição.
