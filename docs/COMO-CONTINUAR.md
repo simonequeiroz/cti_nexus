@@ -130,9 +130,23 @@ Se um botão de demonstração der "senha incorreta", é porque a senha daquele 
 2. Coloque `123456` de novo.
 3. No próximo acesso ele vai pedir para criar uma senha nova (regra da senha temporária).
 
+### Ver o banco no DBeaver
+
+1. Crie uma conexão nova: **Nova conexão → PostgreSQL**.
+2. Na aba **Main**, preencha:
+   - **Host:** `ep-late-block-b64cp83y.c-2.sa-east-1.aws.neon.tech`
+   - **Port:** `5432`
+   - **Database:** `neondb`
+   - **Username:** `neondb_owner`
+   - **Password:** a mesma do `DB_SENHA` do `.env`
+3. Na aba **SSL**, marque **Use SSL** e escolha **SSL mode = require**.
+4. Clique em **Testar conexão**. Se o DBeaver pedir, baixe o driver.
+
+A tabela fica em **neondb → Schemas → public → Tables → usuario**. Use o DBeaver só para consultar: alterações de usuário devem ser feitas pela tela Usuários, que segue as regras (BCrypt, administrador sempre ativo).
+
 ### Ver os usuários no banco
 
-No Neon, entre em **SQL Editor** e rode:
+No Neon (**SQL Editor**) ou no DBeaver (**Editor SQL**), rode:
 
 ```sql
 SELECT id, nome, email, papel, situacao, deve_trocar_senha, criado_em FROM usuario ORDER BY id;
