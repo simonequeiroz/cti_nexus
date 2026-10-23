@@ -1,0 +1,102 @@
+### =====================================================================
+### Testes da API do CTI Nexus (extensão REST Client do VS Code, sem login)
+### Como usar: com o back-end ligado (mvn spring-boot:run), clique em
+### "Send Request" em cima de cada teste, NA ORDEM. A resposta abre ao lado.
+### O token do login é guardado sozinho e usado nos testes seguintes.
+### Mesmo roteiro dos slides 27 a 30 (Thunder Client) + regras do CTI Nexus.
+### =====================================================================
+
+@api = http://localhost:8080/api
+
+# E-mail da pessoa de teste. Se der 409 (já existe), troque por outro (ex.: maria2@senai.com).
+@emailTeste = maria@senai.com
+@senhaTeste = Aluno12345
+
+
+### TESTE 1 — Cadastrar (slide 27)
+### Esperado: 201 Created, "situacao": "PENDENTE" e SEM a senha na resposta.
+# @name cadastro
+POST {{api}}/auth/cadastro
+Content-Type: application/json
+
+{
+  "nome": "Maria Teste",
+  "email": "{{emailTeste}}",
+  "senha": "{{senhaTeste}}"
+}
+
+
+### TESTE 2 — Login antes da aprovação
+### Esperado: 403, "pedido de acesso ainda não foi aprovado".
+POST {{api}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{emailTeste}}",
+  "senha": "{{senhaTeste}}"
+}
+
+
+### TESTE 3 — Login do administrador (slide 28)
+### Esperado: 200 OK com "token", "tipo": "Bearer" e os dados do usuário.
+# @name loginAdmin
+POST {{api}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "admin@ctinexus.com",
+  "senha": "123456"
+}
+
+
+### TESTE 4a — Rota privada SEM token (slide 29)
+### Esperado: 401 Unauthorized.
+GET {{api}}/privado
+
+
+### TESTE 4b — Rota privada COM token (slide 29)
+### Esperado: 200 OK, "Acesso liberado para ...".
+GET {{api}}/privado
+Authorization: Bearer {{loginAdmin.response.body.token}}
+
+
+### TESTE 5 — Quem sou eu (slide 30)
+### Esperado: 200 OK com os dados do administrador, SEM a senha.
+GET {{api}}/auth/me
+Authorization: Bearer {{loginAdmin.response.body.token}}
+
+
+### TESTE 6a — Administrador lista os usuários (inclui o pedido da Maria)
+GET {{api}}/admin/usuarios
+Authorization: Bearer {{loginAdmin.response.body.token}}
+
+
+### TESTE 6b — Administrador aprova a Maria como Gestor
+### Usa o id que veio no Teste 1. Esperado: 200 OK, "situacao": "ATIVO".
+PATCH {{api}}/admin/usuarios/{{cadastro.response.body.id}}/status
+Authorization: Bearer {{loginAdmin.response.body.token}}
+Content-Type: application/json
+
+{
+  "situacao": "ATIVO",
+  "papel": "GESTOR"
+}
+
+
+### TESTE 7a — Agora a Maria consegue entrar
+### Esperado: 200 OK com o token dela.
+# @name loginMaria
+POST {{api}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{emailTeste}}",
+  "senha": "{{senhaTeste}}"
+}
+
+
+### TESTE 7b — Autorização: Maria (gestora) tenta abrir a lista de usuários
+### Esperado: 403 Forbidden.
+### 401 = "não sei quem você é" (autenticação). 403 = "sei quem você é, mas você não pode" (autorização).
+GET {{api}}/admin/usuarios
+Authorization: Bearer {{loginMaria.response.body.token}}

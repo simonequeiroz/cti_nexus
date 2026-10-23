@@ -154,7 +154,17 @@ SELECT id, nome, email, papel, situacao, deve_trocar_senha, criado_em FROM usuar
 
 ---
 
-## 5. Testes automáticos
+## 5. Testes da API para a apresentação (sem Thunder Client)
+
+O Thunder Client novo pede login com conta da empresa dele. Em vez disso, use a extensão **REST Client** (humao.rest-client):
+1. Abra **`backend-java/testes-api.http`**.
+2. Com o back-end ligado, clique em **Send Request** em cada teste, na ordem.
+
+São os testes dos slides 27 a 30 (cadastro, login, rota privada sem e com token, `/me`) mais a aprovação pelo administrador e o 403 de autorização. O token é guardado sozinho entre os testes. Para repetir, troque `@emailTeste` por um e-mail novo, porque o mesmo e-mail não cadastra duas vezes.
+
+Atenção: no VS Code também há a extensão **Supabase**, com um raio verde, que não é usada no projeto. Pode desativar.
+
+## 6. Testes automáticos
 
 ```powershell
 cd backend-java ; mvn test      # 3 testes do back-end (usa banco H2 temporário, não precisa do Neon)
@@ -163,7 +173,7 @@ cd frontend-vue ; npm test      # 74 testes do front (usa services/apiFalsa.js, 
 
 ---
 
-## 6. Cuidados
+## 7. Cuidados
 
 - **Nunca** mande os arquivos `.env` para o GitHub (o `.gitignore` já bloqueia). Não cole a senha do Neon em chat.
 - **Envio para o GitHub:** pelo VS Code, no ícone das três bolinhas → **Sincronizar Alterações**.
@@ -172,7 +182,7 @@ cd frontend-vue ; npm test      # 74 testes do front (usa services/apiFalsa.js, 
 
 ---
 
-## 7. Próximos passos
+## 8. Próximos passos
 
 1. **Planilha no back-end** (o "L" do ETL): enviar a planilha para o Spring, gravar a importação e os clientes no Neon, guardar quem enviou e quem liberou (`importacao.enviado_por`, `aprovado_por`) e fazer o painel ler do banco.
 2. **Python** (`analytics-python/`): análises com Pandas e os gráficos com Matplotlib, incluindo o **boxplot** de faturamento por segmento, que o plano de ensino exige.
