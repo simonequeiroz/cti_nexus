@@ -5,6 +5,8 @@
 let usuarios = []
 let proximoId = 1
 let logado = null // Quem fez o último login (no lugar de conferir o token).
+let cargas = [] // Cargas "gravadas" (upload_lote), a mais nova primeiro.
+let clientesGravados = [] // Clientes da última carga (o que o GET /clientes devolve).
 
 function usuarioInicial(nome, email, papel) {
   return { id: proximoId++, nome, email, senha: '123456', cargo: null, papel, situacao: 'ATIVO', criadoEm: '2026-10-22T10:00:00', deveTrocarSenha: false, pediuNovaSenhaEm: null }
@@ -14,8 +16,10 @@ function usuarioInicial(nome, email, papel) {
 function reiniciar() {
   proximoId = 1
   logado = null
+  cargas = []
+  clientesGravados = []
   usuarios = [
-    usuarioInicial('Administrador', 'admin@ctinexus.com', 'ADMINISTRADOR'),
+    usuarioInicial('Carla Mendes', 'admin@ctinexus.com', 'ADMINISTRADOR'),
     usuarioInicial('Ana Lima', 'analista@ctinexus.com', 'ANALISTA'),
     usuarioInicial('Gustavo Reis', 'gestor@ctinexus.com', 'GESTOR')
   ]
@@ -100,6 +104,27 @@ const rotas = {
     Object.assign(u, { senha, deveTrocarSenha: true, pediuNovaSenhaEm: null })
     return resposta(u)
   },
+  // Imita o UploadController.java (o Python também é de mentira: a carga só fica guardada aqui na memória).
+  'POST /uploads/validadas': ({ arquivoNome, descartadas = 0, linhas = [] }) => {
+    if (!logado) falhar(401, 'Faça o login.')
+    if (!['ADMINISTRADOR', 'ANALISTA'].includes(logado.papel)) falhar(403, 'Você não tem permissão.')
+    if (!linhas.length) falhar(400, 'Não há clientes aprovados para enviar.')
+    const carga = {
+      id: cargas.length + 1, arquivoNome, totalLinhas: linhas.length + descartadas, linhasValidas: linhas.length,
+      linhasInvalidas: descartadas, linhasComAjuste: 0, enviadoPor: { id: logado.id, nome: logado.nome },
+      aprovadoPor: { id: logado.id, nome: logado.nome }, criadoEm: new Date().toISOString()
+    }
+    cargas.unshift(carga)
+    clientesGravados = linhas.map(l => ({
+      codigo_cliente: l.codigoCliente, nome_cliente: l.nomeCliente, consultor: l.consultor, segmento: l.segmento,
+      nivel_cliente: l.nivelCliente, faturamento_anual: Number(l.faturamentoAnual), servicos_contratados: l.servicosContratados,
+      data_contratacao: l.dataContratacao, cidade: l.cidade, uf: l.uf, email: l.email
+    }))
+    const { id, enviadoPor, aprovadoPor, criadoEm, ...numeros } = carga
+    return { loteId: id, status: 'PROCESSADO', ...numeros, rejeitadas: [] }
+  },
+  'GET /uploads': () => cargas,
+  'GET /clientes': () => clientesGravados,
   'DELETE /admin/usuarios/:id': (_, id) => {
     const u = buscar(id)
     if (u.situacao !== 'PENDENTE') falhar(409, 'Só pedidos pendentes podem ser recusados.')

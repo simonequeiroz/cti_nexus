@@ -1,0 +1,4 @@
+-- O schema oficial do banco (PostgreSQL / Neon) fica em:
+--   backend-java/src/main/resources/schema.sql
+-- O Spring Boot roda aquele arquivo toda vez que liga (spring.sql.init.mode=always) e cria as tabelas que faltarem.
+-- Ele fica lá para existir um lugar só: se mudar uma tabela, mude naquele arquivo.

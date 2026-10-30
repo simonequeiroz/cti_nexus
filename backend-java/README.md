@@ -54,6 +54,10 @@ Ele fica só no seu PC (o Git ignora).
 | POST | `/api/auth/esqueci-senha` | todos | `{email}` → marca o pedido para o administrador (resposta sempre igual) |
 | POST | `/api/auth/trocar-senha` | logado | `{senhaAtual, senhaNova}` → troca a própria senha (obrigatório com senha temporária) |
 | GET | `/api/privado` | logado | Rota de teste da aula |
+| GET | `/api/health` | todos | `{"status":"ok"}`: o back-end está ligado |
+| POST | `/api/uploads/validadas` | analista e administrador (`aprovar_carga`) | Linhas aprovadas pelo front → valida de novo → Python grava. 201 com `loteId` e `rejeitadas` |
+| GET | `/api/uploads` | todos (`ver_painel`) | Cargas gravadas (quem enviou, quem liberou, quantas linhas) |
+| GET | `/api/clientes` | todos (`ver_painel`) | Clientes da última carga (formato das linhas da planilha) |
 | GET | `/api/admin/usuarios` | administrador | Lista usuários e pedidos |
 | POST | `/api/admin/usuarios` | administrador | Cadastra `{nome, email, senha, papel}`, já ativo |
 | PUT | `/api/admin/usuarios/{id}` | administrador | Edita `{nome, email, senha?, papel}` (senha vazia = mantém) |
@@ -65,12 +69,25 @@ Ele fica só no seu PC (o Git ignora).
 (só `/api/auth/me` e `/api/auth/trocar-senha`). Vale para a senha definida no "Esqueci minha senha", no cadastro feito
 pelo administrador e quando ele edita a senha de outra pessoa.
 
-Respostas de erro: `{status, mensagem, campos}`. 400 = campo inválido, 401 = sem login ou senha errada,
-403 = sem permissão ou conta pendente/desativada, 409 = e-mail repetido ou regra de proteção.
+Respostas de erro: `{status, mensagem, campos}`. 400 = campo inválido ou JSON ilegível, 401 = sem login ou senha errada,
+403 = sem permissão ou conta pendente/desativada, 409 = e-mail repetido ou regra de proteção,
+422 = planilha acima do limite ou sem nenhuma linha válida, 502 = o Python respondeu com erro, 503 = o Python está desligado.
+
+## Planilha: Java → Python → banco (aula "Telas do Backend")
+
+```
+Front ─► UploadController ─► UploadService ─► ClienteValidacaoService ─► PythonEtlService ─► Python POST /etl ─► Neon
+```
+
+- **O Java grava só a tabela `usuario`.** As tabelas da planilha são gravadas pelo Python (`analytics-python/api.py`).
+- O `ClienteValidacaoService` confere tudo de novo com as **mesmas regras do front** (`Padronizacao.java` = `normalizacao.js`).
+- As tabelas ficam em `src/main/resources/schema.sql`, que o Spring roda toda vez que liga (`CREATE TABLE IF NOT EXISTS`).
+- Java e Python combinam uma chave (`ETL_CHAVE`, igual nos dois `.env`), mandada no cabeçalho `X-ETL-Key`.
 
 ## Testes
 
-- **Automático:** `mvn test` faz os 4 testes do Thunder Client da aula e as regras do CTI Nexus
-  (usa um banco H2 temporário, não precisa do Neon). Arquivo: `src/test/java/.../AutenticacaoFluxoTest.java`.
+- **Automático:** `mvn test` (13 testes, banco H2 temporário, não precisa do Neon nem do Python):
+  `AutenticacaoFluxoTest` (login, usuários, esqueci minha senha), `ClienteValidacaoServiceTest` (regras da planilha)
+  e `UploadFluxoTest` (envio da planilha com o Python "de mentira", painel, 400/403/422/503).
 - **Thunder Client:** com o sistema rodando, siga a tabela acima. Para rotas que exigem login,
   em Auth → Bearer, cole o token recebido no login.

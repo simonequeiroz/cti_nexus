@@ -19,7 +19,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         "spring.datasource.url=jdbc:h2:mem:teste;MODE=PostgreSQL", // Banco temporário só para o teste.
         "spring.datasource.username=sa",
         "spring.datasource.password=",
-        "spring.jpa.hibernate.ddl-auto=create-drop",                // Cria as tabelas no começo e apaga no fim.
+        // As tabelas são criadas pelo schema.sql (igual no Neon); o banco em memória some quando o teste acaba.
         "jwt.segredo=Y2hhdmUtZGUtdGVzdGUtY3RpLW5leHVzLTMyYnl0ZXM=" // Chave fixa só para o teste.
 })
 @AutoConfigureMockMvc // MockMvc = "Thunder Client" de mentira, sem abrir a porta 8080.

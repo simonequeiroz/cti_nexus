@@ -27,15 +27,18 @@
         Clique em <strong>Conferir de novo</strong> antes de liberar, para as correções valerem.
       </p>
       <p v-if="mensagem" role="status" class="mt-1 text-sm text-green-dark font-medium">{{ mensagem }}</p>
+      <!-- Erro ao salvar (ex.: servidor desligado): a liberação não acontece e dá para tentar de novo. -->
+      <p v-if="erro" role="alert" class="mt-1 text-sm text-orange-dark font-medium">{{ erro }}</p>
     </div>
 
     <div class="flex flex-wrap gap-3 shrink-0">
       <BotaoBase
         v-if="estado !== 'liberada' && podeLiberar"
-        :disabled="store.edicoesPendentes > 0"
+        :disabled="store.edicoesPendentes > 0 || store.enviando"
         @click="liberar"
       >
-        {{ estado === 'aguardando' ? 'Liberar' : 'Liberar de novo' }} {{ textoClientes(store.quantidadeValidas) }} →
+        <template v-if="store.enviando">Salvando…</template>
+        <template v-else>{{ estado === 'aguardando' ? 'Liberar' : 'Liberar de novo' }} {{ textoClientes(store.quantidadeValidas) }} →</template>
       </BotaoBase>
       <BotaoBase v-if="store.liberada" href="#/dashboard" variante="secundario">Ver painel</BotaoBase>
     </div>
@@ -59,6 +62,7 @@ const ESTILO = {
 }
 
 const mensagem = ref('') // Confirmação depois de liberar.
+const erro = ref('') // Problema ao salvar (a liberação não aconteceu).
 
 const podeLiberar = computed(() => auth.pode('aprovar_carga'))
 
@@ -81,7 +85,18 @@ function textoLinhas(quantidade) {
   return `${quantidade.toLocaleString('pt-BR')} ${quantidade === 1 ? 'linha' : 'linhas'}`
 }
 
-function liberar() {
-  if (store.liberarParaPainel()) mensagem.value = 'Pronto: o painel já mostra estes clientes.'
+// Salva no servidor (POST /api/uploads/validadas) e só então mostra os clientes no painel.
+async function liberar() {
+  mensagem.value = ''
+  erro.value = ''
+  const resultado = await store.liberarParaPainel()
+  if (!resultado.ok) {
+    erro.value = resultado.mensagem
+    return
+  }
+  const recusados = resultado.rejeitadas
+  mensagem.value = recusados.length
+    ? `Clientes salvos. ${textoClientes(recusados.length)} não ${recusados.length === 1 ? 'passou' : 'passaram'} na conferência final e ${recusados.length === 1 ? 'ficou' : 'ficaram'} de fora: ${recusados.map(r => `linha ${r.linha} (${r.motivo})`).join('; ')}.`
+    : 'Pronto: os clientes foram salvos e o painel já mostra estes clientes.'
 }
 </script>

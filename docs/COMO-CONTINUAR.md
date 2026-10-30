@@ -1,7 +1,7 @@
 # CTI Nexus — como continuar em outra máquina
 
 Diário do que foi feito e passo a passo para montar e ligar o sistema em qualquer computador.
-Última atualização: **22/10/2026**.
+Última atualização: **29/10/2026**.
 
 > **Para o Claude Code na outra máquina:** comece pedindo
 > *"leia o CLAUDE.md e o docs/COMO-CONTINUAR.md e vamos continuar o CTI Nexus"*.
@@ -14,7 +14,8 @@ Diário do que foi feito e passo a passo para montar e ligar o sistema em qualqu
 - O **front-end** (Vue) está pronto: telas de planilha, validação, relatório, painel e usuários.
 - O **back-end** (Spring Boot + JWT) está feito e **ligado ao front** no login, no pedido de acesso, na tela Usuários e no "Esqueci minha senha".
 - O **banco** é o PostgreSQL no **Neon** e já tem a tabela `usuario`.
-- **Ainda roda só no navegador:** a planilha (enviar, conferir, corrigir, liberar, painel). Ela ainda não vai para o banco.
+- **Planilha no banco (29/10):** ao clicar em **Liberar para o painel**, as linhas aprovadas vão para o Java, que confere de novo e manda para o **Python**, que grava no Neon. O painel lê a última carga do banco.
+- **Ainda falta:** os gráficos em Python (com o boxplot obrigatório) e publicar (Render e Vercel).
 
 ## 2. O que foi feito em 22/10/2026
 
@@ -24,6 +25,14 @@ Diário do que foi feito e passo a passo para montar e ligar o sistema em qualqu
 | `061ae61` | Front ligado à API: login, pedido de acesso e tela Usuários passam a usar o banco (antes era demonstração no navegador) |
 | `b83b619` | `services/` com uma função por rota (`autenticacaoService.js`, `usuariosService.js`) e endereço padrão no `api.js` (a professora apontou que o `api.js` não mostrava a ligação com o back-end) |
 | `b373fa4` | "Esqueci minha senha" com senha temporária e troca obrigatória; `api.js` com timeout e tratamento do 401; olho na senha; visual do login (cartão e texto maior) |
+
+### 29/10/2026: aula "Telas do Backend" (planilha → Java → Python → banco)
+
+- **Back-end:** `UploadController`, `UploadService`, `ClienteValidacaoService`, `Padronizacao`, `Colunas`, `PythonEtlService`, `ConsultaCargaService`, `ClienteController`, `SaudeController` e `schema.sql` com as 8 tabelas da aula.
+- **Python** (`analytics-python/`): `api.py` (FastAPI, `POST /etl`), `limpeza.py` (Pandas), `analise.py` (estatísticas por segmento) e `banco.py` (grava numa transação só).
+- **Front:** `services/uploadService.js`. O botão **Liberar** espera o servidor gravar, e o Dashboard busca a última carga no banco.
+- **Neon:** as tabelas antigas de um exercício anterior (cliente, consultor, contrato, servico, insight, telemetria) foram **renomeadas** para `antigo_*`. Nada foi apagado.
+- **Testes:** `mvn test` com 13 testes e `npm test` com 76.
 
 ### Como funciona o login (para explicar na apresentação)
 
@@ -68,7 +77,18 @@ npm install
 
 O arquivo `frontend-vue/.env` é opcional: sem ele, o front usa `http://localhost:8080/api`.
 
-### 3.4 Back-end: criar o arquivo `backend-java/.env`
+### 3.4 Python
+
+```powershell
+cd analytics-python
+python -m pip install -r requirements.txt
+```
+
+Crie o `analytics-python/.env` copiando o `.env.example`:
+- `DATABASE_URL`: a Connection string do Neon, do jeito que o site mostra.
+- `ETL_CHAVE`: um texto longo qualquer, **igual** ao `ETL_CHAVE` do `backend-java/.env`.
+
+### 3.5 Back-end: criar o arquivo `backend-java/.env`
 
 Esse arquivo **não vai para o GitHub** (tem a senha do banco), então precisa ser criado em cada máquina:
 
@@ -99,10 +119,18 @@ Esse arquivo **não vai para o GitHub** (tem a senha do banco), então precisa s
 
 ## 4. Ligar o sistema
 
-Use **dois terminais** no VS Code:
+Use **três terminais** no VS Code, nesta ordem:
 
 ```powershell
-# Terminal 1 — back-end (porta 8080)
+# Terminal 1 — Python (porta 8000): grava a planilha no banco
+cd analytics-python
+python -m uvicorn api:app --port 8000
+```
+
+Teste: http://localhost:8000/health tem que responder `{"status":"ok"}`. Se o Python estiver desligado, liberar a planilha mostra "O serviço de análise está desligado".
+
+```powershell
+# Terminal 2 — back-end (porta 8080)
 cd backend-java
 mvn spring-boot:run
 ```
@@ -110,7 +138,7 @@ mvn spring-boot:run
 O back-end está no ar quando aparece **`Started CtiNexusApplication`**.
 
 ```powershell
-# Terminal 2 — front-end (porta 5173)
+# Terminal 3 — front-end (porta 5173)
 cd frontend-vue
 npm run dev
 ```
@@ -160,15 +188,15 @@ O Thunder Client novo pede login com conta da empresa dele. Em vez disso, use a 
 1. Abra **`backend-java/testes-api.http`**.
 2. Com o back-end ligado, clique em **Send Request** em cada teste, na ordem.
 
-São os testes dos slides 27 a 30 (cadastro, login, rota privada sem e com token, `/me`) mais a aprovação pelo administrador e o 403 de autorização. O token é guardado sozinho entre os testes. Para repetir, troque `@emailTeste` por um e-mail novo, porque o mesmo e-mail não cadastra duas vezes.
+São os testes dos slides 27 a 30 (cadastro, login, rota privada sem e com token, `/me`), a aprovação pelo administrador e o 403 de autorização. Os testes 8 a 12 são da aula "Telas do Backend": `/health`, envio da planilha (uma linha é recusada de propósito), painel e histórico de cargas. O token é guardado sozinho entre os testes. Para repetir, troque `@emailTeste` por um e-mail novo, porque o mesmo e-mail não cadastra duas vezes.
 
 Atenção: no VS Code também há a extensão **Supabase**, com um raio verde, que não é usada no projeto. Pode desativar.
 
 ## 6. Testes automáticos
 
 ```powershell
-cd backend-java ; mvn test      # 3 testes do back-end (usa banco H2 temporário, não precisa do Neon)
-cd frontend-vue ; npm test      # 74 testes do front (usa services/apiFalsa.js, não precisa do back-end)
+cd backend-java ; mvn test      # 13 testes do back-end (banco H2 temporário; não precisa do Neon nem do Python)
+cd frontend-vue ; npm test      # 76 testes do front (usa services/apiFalsa.js, não precisa do back-end)
 ```
 
 ---
@@ -184,8 +212,9 @@ cd frontend-vue ; npm test      # 74 testes do front (usa services/apiFalsa.js, 
 
 ## 8. Próximos passos
 
-1. **Planilha no back-end** (o "L" do ETL): enviar a planilha para o Spring, gravar a importação e os clientes no Neon, guardar quem enviou e quem liberou (`importacao.enviado_por`, `aprovado_por`) e fazer o painel ler do banco.
-2. **Python** (`analytics-python/`): análises com Pandas e os gráficos com Matplotlib, incluindo o **boxplot** de faturamento por segmento, que o plano de ensino exige.
+1. ~~Planilha no back-end~~ ✅ (29/10).
+2. **Gráficos em Python** (`analytics-python/graficos.py`): Matplotlib com o **boxplot** de faturamento por segmento, que o plano de ensino exige, e um teste estatístico (Shapiro-Wilk ou Qui-quadrado).
 3. **Publicar:** back-end no **Render** e front na **Vercel**.
    - No Render, defina as mesmas variáveis do `.env`, mais `ADMIN_SENHA` forte e `CORS_ORIGENS` com o endereço da Vercel.
+   - O Python também vai para o Render, como outro serviço. O `ETL_URL` do back-end passa a ser o endereço dele + `/etl`.
    - Na Vercel, defina `VITE_API_URL` com o endereço do Render + `/api`.

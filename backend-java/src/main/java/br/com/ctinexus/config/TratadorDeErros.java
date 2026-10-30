@@ -4,6 +4,7 @@ import br.com.ctinexus.dto.ErroResponse;
 import br.com.ctinexus.service.RegraDeNegocioException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -33,5 +34,12 @@ public class TratadorDeErros {
                 .forEach(erro -> campos.putIfAbsent(erro.getField(), erro.getDefaultMessage())); // Um erro por campo.
         return ResponseEntity.badRequest()
                 .body(new ErroResponse(HttpStatus.BAD_REQUEST.value(), "Confira os campos destacados.", campos));
+    }
+
+    // Corpo que não é um JSON válido (vírgula faltando, acento estragado, texto no lugar de lista...): 400.
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ErroResponse> jsonIlegivel(HttpMessageNotReadableException e) {
+        return ResponseEntity.badRequest()
+                .body(new ErroResponse(HttpStatus.BAD_REQUEST.value(), "Os dados enviados não estão num formato válido (JSON)."));
     }
 }

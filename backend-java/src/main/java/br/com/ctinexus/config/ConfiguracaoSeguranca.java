@@ -41,8 +41,11 @@ public class ConfiguracaoSeguranca {
                 .authorizeHttpRequests(regras -> regras
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()                   // "Pré-consulta" do navegador (CORS).
                         .requestMatchers(HttpMethod.POST, "/api/auth/login", "/api/auth/cadastro", "/api/auth/esqueci-senha").permitAll() // Públicas.
+                        .requestMatchers(HttpMethod.GET, "/api/health").permitAll()              // "Está ligado?" (aula).
                         .requestMatchers("/error").permitAll()                                    // Página de erro do Spring.
                         .requestMatchers("/api/admin/**").hasAuthority("gerenciar_usuarios")      // Só administrador.
+                        .requestMatchers(HttpMethod.POST, "/api/uploads/**").hasAuthority("aprovar_carga") // Liberar planilha: analista e administrador.
+                        .requestMatchers(HttpMethod.GET, "/api/uploads/**", "/api/clientes/**").hasAuthority("ver_painel") // Painel: todos os papéis.
                         .anyRequest().authenticated())                                           // O resto exige token.
                 // Sem token (ou token inválido) -> 401. Com token, mas sem permissão -> 403 (padrão do Spring).
                 .exceptionHandling(e -> e.authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))

@@ -100,3 +100,59 @@ Content-Type: application/json
 ### 401 = "não sei quem você é" (autenticação). 403 = "sei quem você é, mas você não pode" (autorização).
 GET {{api}}/admin/usuarios
 Authorization: Bearer {{loginMaria.response.body.token}}
+
+
+### =====================================================================
+### AULA "TELAS DO BACKEND": planilha -> Java -> Python -> banco
+### Ligar antes os 3 terminais: Python (8000), back-end (8080) e front (5173).
+### =====================================================================
+
+### TESTE 8 — Está ligado? (público, sem token)
+### Esperado: 200 {"status":"ok"}
+GET {{api}}/health
+
+
+### TESTE 9 — Login da analista (quem tem a permissão aprovar_carga)
+# @name loginAnalista
+POST {{api}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "analista@ctinexus.com",
+  "senha": "123456"
+}
+
+
+### TESTE 10 — Enviar as linhas válidas (POST /api/uploads/validadas)
+### O Java confere de novo: a linha 4 (segmento "Agro") volta em "rejeitadas" e NÃO é gravada.
+### As outras vão para o Python, que grava no banco. Esperado: 201 com "loteId".
+### (Python desligado: 503. Gestor: 403.)
+POST {{api}}/uploads/validadas
+Authorization: Bearer {{loginAnalista.response.body.token}}
+Content-Type: application/json
+
+{
+  "arquivoNome": "teste-thunder.xlsx",
+  "descartadas": 0,
+  "linhas": [
+    { "numeroLinha": 2, "codigoCliente": "AULA01", "nomeCliente": "Metalúrgica Alfa", "consultor": "Ana Souza",
+      "segmento": "Indústria", "nivelCliente": "A", "faturamentoAnual": "1850000", "servicosContratados": "MPLS;Firewall",
+      "dataContratacao": "05/03/2024", "cidade": "Campinas", "uf": "SP", "email": "" },
+    { "numeroLinha": 3, "codigoCliente": "AULA02", "nomeCliente": "CLÍNICA VIDA", "consultor": "CARLOS LIMA",
+      "segmento": "saude", "nivelCliente": "b", "faturamentoAnual": "R$ 98.000,50", "servicosContratados": "Link Dedicado",
+      "dataContratacao": "10/01/2023", "cidade": "", "uf": "", "email": "contato@vida.com.br" },
+    { "numeroLinha": 4, "codigoCliente": "AULA03", "nomeCliente": "Fazenda Sol", "consultor": "Ana Souza",
+      "segmento": "Agro", "nivelCliente": "C", "faturamentoAnual": "50000", "servicosContratados": "MPLS",
+      "dataContratacao": "01/02/2022", "cidade": "", "uf": "", "email": "" }
+  ]
+}
+
+
+### TESTE 11 — Painel: clientes da última carga gravada (todos os papéis podem ver)
+GET {{api}}/clientes
+Authorization: Bearer {{loginAnalista.response.body.token}}
+
+
+### TESTE 12 — Histórico das cargas (quem enviou, quem liberou, quantas linhas)
+GET {{api}}/uploads
+Authorization: Bearer {{loginAnalista.response.body.token}}

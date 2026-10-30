@@ -43,7 +43,7 @@ public class DadosIniciais implements CommandLineRunner {
     public void run(String... args) {
         // 1) Primeiro administrador: só se não existir nenhum administrador ativo.
         if (usuarioRepository.countByPapelAndSituacao(Papel.ADMINISTRADOR, SituacaoUsuario.ATIVO) == 0) {
-            criarSeNaoExistir("Administrador", emailAdmin, senhaAdmin, Papel.ADMINISTRADOR);
+            criarSeNaoExistir("Carla Mendes", emailAdmin, senhaAdmin, Papel.ADMINISTRADOR);
         }
 
         // 2) Demonstração: mesmos e-mails do front (FormularioLogin.vue).

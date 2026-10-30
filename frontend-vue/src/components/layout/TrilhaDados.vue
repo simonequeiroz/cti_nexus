@@ -6,8 +6,6 @@
     :class="recolhida ? 'w-20' : 'w-60'"
     aria-label="Menu do sistema"
   >
-    <FundoNeural class="absolute inset-0 opacity-30" :densidade="9000" :distancia-ligacao="90" />
-
     <!-- Em janelas baixas (ou com zoom) o conteúdo rola por dentro, sem cortar o usuário lá embaixo. -->
     <div class="relative flex flex-1 flex-col px-3 py-5 min-h-0 overflow-y-auto overflow-x-hidden scrollbar-none">
       <div class="flex items-center" :class="recolhida ? 'flex-col gap-3' : 'justify-between pl-2'">
@@ -132,7 +130,6 @@
 import { computed } from 'vue'
 import EtapaTrilha from './EtapaTrilha.vue'
 import LogoMarca from '../ui/LogoMarca.vue'
-import FundoNeural from '../ui/FundoNeural.vue'
 import { useAutenticacaoStore } from '../../stores/autenticacaoStore'
 import { useUploadStore } from '../../stores/uploadStore'
 import { useUsuariosStore } from '../../stores/usuariosStore'

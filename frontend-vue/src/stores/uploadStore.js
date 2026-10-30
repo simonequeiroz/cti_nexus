@@ -3,8 +3,10 @@ import { ref, computed } from 'vue'
 import * as XLSX from 'xlsx'
 import { lerPlanilha, verificarArquivo, ExcelInvalidoError, ColunaObrigatoriaError } from '../utils/leituraPlanilha'
 import { validarLinhas } from '../utils/validacao'
-import { texto } from '../utils/normalizacao'
+import { texto, normalizarCodigo } from '../utils/normalizacao'
 import { contarPor } from '../utils/estatistica'
+import { mensagemDeErro } from '../utils/usuarioApi'
+import { enviarClientesValidados, listarClientes, listarCargas } from '../services/uploadService' // Rotas /uploads e /clientes da API.
 import { useAutenticacaoStore } from './autenticacaoStore'
 
 export const useUploadStore = defineStore('upload', () => {
@@ -32,6 +34,9 @@ export const useUploadStore = defineStore('upload', () => {
   const dadosLiberados = ref([]) // Cópia dos clientes aprovados no momento da liberação: é o que o painel mostra.
   const liberacao = ref(null) // Quem liberou e quando: { por: { id, nome }, em, quantidade }. No banco: importacao.aprovado_por/aprovado_em.
   const mudouDesdeLiberacao = ref(false) // Houve correções depois da liberação (o painel mostra a versão antiga).
+  const enviando = ref(false) // Esperando o back-end gravar a liberação (Java confere de novo e o Python grava no banco).
+  const cargaGravada = ref(null) // Última carga gravada no banco, que é o que o painel mostra: { id, arquivoNome, totalLinhas, linhasInvalidas, ... }.
+  const carregandoPainel = ref(false) // Buscando no banco os clientes da última carga (Dashboard aberto sem planilha nesta sessão).
 
   // ===== GETTERS =====
 
@@ -255,15 +260,89 @@ export const useUploadStore = defineStore('upload', () => {
     return invalidasAntes - quantidadeInvalidas.value
   }
 
-  // "L" do ETL: só os clientes aprovados e liberados entram no painel. Com o back-end, esta ação grava no banco.
-  function liberarParaPainel() {
-    if (!quantidadeValidas.value || !useAutenticacaoStore().pode('aprovar_carga')) return false
-    dadosLiberados.value = [...dadosValidos.value]
-    liberacao.value = { por: usuarioAtual(), em: new Date(), quantidade: dadosLiberados.value.length }
-    mudouDesdeLiberacao.value = false
-    const registro = historico.value.find(item => item.id === idHistoricoAtual.value)
-    if (registro) registro.liberadoPor = liberacao.value.por
-    return true
+  // "L" do ETL: manda os clientes aprovados para o back-end (POST /api/uploads/validadas).
+  // O Java confere tudo de novo e pede ao Python para gravar no banco; só então o painel mostra os clientes.
+  // Devolve { ok, mensagem, rejeitadas } para a tela mostrar o resultado.
+  async function liberarParaPainel() {
+    if (!quantidadeValidas.value || !useAutenticacaoStore().pode('aprovar_carga')) {
+      return { ok: false, mensagem: 'Você não tem permissão para liberar clientes para o painel.', rejeitadas: [] }
+    }
+
+    enviando.value = true
+    try {
+      const resposta = await enviarClientesValidados(montarEnvio())
+      // Recusados na conferência do servidor (normalmente nenhum: o front e o back-end usam as mesmas regras).
+      const recusados = new Set(resposta.rejeitadas.map(item => item.codigo))
+      dadosLiberados.value = dadosValidos.value.filter(cliente => !recusados.has(cliente.codigo_cliente))
+      liberacao.value = { por: usuarioAtual(), em: new Date(), quantidade: dadosLiberados.value.length }
+      cargaGravada.value = { id: resposta.loteId, arquivoNome: resposta.arquivoNome, totalLinhas: resposta.totalLinhas, linhasInvalidas: resposta.linhasInvalidas }
+      mudouDesdeLiberacao.value = false
+      const registro = historico.value.find(item => item.id === idHistoricoAtual.value)
+      if (registro) registro.liberadoPor = liberacao.value.por
+      return { ok: true, mensagem: '', rejeitadas: resposta.rejeitadas }
+    } catch (erro) {
+      return { ok: false, mensagem: mensagemDeErro(erro), rejeitadas: [] } // Ex.: "O serviço de análise está desligado..."
+    } finally {
+      enviando.value = false
+    }
+  }
+
+  // Formato do POST /api/uploads/validadas (UploadDtos.java): só as linhas aprovadas, com o número da linha no Excel.
+  function montarEnvio() {
+    const linhaDoCodigo = new Map() // Código -> primeira linha da planilha com esse código (a que foi aprovada).
+    dadosBrutos.value.forEach((linha, indice) => {
+      const codigo = normalizarCodigo(linha.codigo_cliente)
+      if (codigo && !linhaDoCodigo.has(codigo)) linhaDoCodigo.set(codigo, indice + 2)
+    })
+
+    return {
+      arquivoNome: nomeArquivo.value,
+      descartadas: quantidadeInvalidas.value, // Linhas com erro que ficam de fora (entram na contagem da carga).
+      enviadoPorId: enviadoPor.value?.id ?? null, // Quem conferiu a planilha. Quem liberou o servidor descobre pelo token.
+      linhas: dadosValidos.value.map(cliente => ({
+        numeroLinha: linhaDoCodigo.get(cliente.codigo_cliente) ?? null,
+        codigoCliente: cliente.codigo_cliente,
+        nomeCliente: cliente.nome_cliente,
+        consultor: cliente.consultor,
+        segmento: cliente.segmento,
+        nivelCliente: cliente.nivel_cliente,
+        faturamentoAnual: String(cliente.faturamento_anual),
+        servicosContratados: cliente.servicos_contratados,
+        dataContratacao: cliente.data_contratacao,
+        cidade: cliente.cidade ?? '',
+        uf: cliente.uf ?? '',
+        email: cliente.email ?? ''
+      })),
+      alteracoes: alteracoes.value.map(alteracao => ({ // Log "quem alterou o quê", gravado junto com a carga.
+        linha: alteracao.linha,
+        codigo: alteracao.codigo,
+        campo: alteracao.campo,
+        valorAntigo: alteracao.valorAntigo,
+        valorNovo: alteracao.valorNovo,
+        usuarioId: alteracao.usuario?.id ?? null,
+        em: new Date(alteracao.em).toISOString()
+      }))
+    }
+  }
+
+  // Dashboard aberto sem planilha nesta sessão (ex.: o gestor entrando no dia seguinte):
+  // busca no banco a última carga liberada (GET /api/uploads e GET /api/clientes).
+  async function carregarDoBanco() {
+    if (dadosBrutos.value.length || liberada.value) return // Há planilha aberta nesta sessão: o painel segue a sessão.
+
+    carregandoPainel.value = true
+    try {
+      const [cargas, clientes] = await Promise.all([listarCargas(), listarClientes()])
+      const ultima = cargas[0]
+      if (!ultima || !clientes.length) return // Nada gravado ainda.
+      dadosLiberados.value = clientes
+      liberacao.value = { por: ultima.aprovadoPor, em: new Date(ultima.criadoEm), quantidade: clientes.length }
+      cargaGravada.value = ultima
+    } catch {
+      // Sem resposta do servidor: o painel mostra o aviso de "nenhum dado".
+    } finally {
+      carregandoPainel.value = false
+    }
   }
 
   function baixarPlanilhaCorrigida() { // Gera um .xlsx com as correções, na aba upload_clientes.
@@ -276,11 +355,11 @@ export const useUploadStore = defineStore('upload', () => {
     arquivo, nomeArquivo, dataUpload, enviadoPor, tamanhoArquivo,
     dadosBrutos, dadosValidos, dadosInvalidos, erros, ocorrencias, padronizacoes,
     statusValidacao, carregando, historico, idHistoricoAtual, edicoesPendentes,
-    duracaoMs, alteracoes, dadosLiberados, liberacao, mudouDesdeLiberacao,
+    duracaoMs, alteracoes, dadosLiberados, liberacao, mudouDesdeLiberacao, enviando, cargaGravada, carregandoPainel,
     quantidadeLinhas, quantidadeValidas, quantidadeInvalidas,
     quantidadeClientes, percentualValido, faturamentoTotal, faturamentoMedio,
     errosPorTipo, errosPorCampo, padronizacoesPorCampo, padronizacoesPorMotivo, falhouLeitura, liberada, quantidadeLiberados,
     registrarArquivo, processarArquivo,
-    limparUpload, limparHistorico, corrigirCampo, revalidar, liberarParaPainel, baixarPlanilhaCorrigida
+    limparUpload, limparHistorico, corrigirCampo, revalidar, liberarParaPainel, carregarDoBanco, baixarPlanilhaCorrigida
   }
 })

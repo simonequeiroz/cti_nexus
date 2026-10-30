@@ -3,8 +3,9 @@ import { readFileSync } from 'node:fs'
 import { setActivePinia, createPinia } from 'pinia'
 import { useUploadStore } from './uploadStore'
 import { useAutenticacaoStore } from './autenticacaoStore'
+import api from '../services/api'
 
-// Login pela API de mentira (services/apiFalsa.js), sem precisar do back-end ligado.
+// Login e liberação pela API de mentira (services/apiFalsa.js), sem precisar do back-end ligado.
 vi.mock('../services/api', () => import('../services/apiFalsa'))
 
 // Fluxo completo com a planilha de teste da tela (15 linhas: 5 corretas e 10 com erro).
@@ -27,7 +28,10 @@ function corrigirTudo(store) {
   }
 }
 
-beforeEach(() => setActivePinia(createPinia()))
+beforeEach(() => {
+  api.reiniciar() // Começa cada teste com a API de mentira vazia (sem cargas gravadas).
+  setActivePinia(createPinia())
+})
 
 describe('conferência', () => {
   it('guarda quem enviou e quanto tempo levou', async () => {
@@ -80,15 +84,43 @@ describe('liberação para o painel', () => {
     expect(store.liberada).toBe(false)
     expect(store.dadosLiberados).toHaveLength(0)
 
-    expect(store.liberarParaPainel()).toBe(true)
+    expect((await store.liberarParaPainel()).ok).toBe(true)
     expect(store.dadosLiberados).toHaveLength(5)
     expect(store.liberacao.por.nome).toBe('Ana Lima')
     expect(store.historico[0].liberadoPor.nome).toBe('Ana Lima')
+    expect(store.cargaGravada).toMatchObject({ id: 1, totalLinhas: 15, linhasInvalidas: 10 })
+  })
+
+  it('manda para o servidor só as linhas aprovadas, com o número da linha e as correções', async () => {
+    const store = await conferirPlanilhaDeTeste()
+    store.corrigirCampo(store.dadosInvalidos[0].numeroLinha, 'consultor', 'Maria Silva')
+    store.revalidar()
+    await store.liberarParaPainel()
+
+    const [carga] = await api.get('/uploads').then(r => r.data)
+    expect(carga.linhasValidas).toBe(store.quantidadeValidas)
+    const clientes = await api.get('/clientes').then(r => r.data)
+    expect(clientes.map(c => c.codigo_cliente)).toEqual(store.dadosValidos.map(c => c.codigo_cliente))
+    expect(typeof clientes[0].faturamento_anual).toBe('number')
+  })
+
+  it('outra sessão (ex.: gestor no dia seguinte) vê no painel a última carga gravada', async () => {
+    await (await conferirPlanilhaDeTeste()).liberarParaPainel() // Analista libera...
+
+    setActivePinia(createPinia()) // ...e outra pessoa abre o sistema depois (memória vazia).
+    await useAutenticacaoStore().login('gestor@ctinexus.com', '123456')
+    const store = useUploadStore()
+    expect(store.liberada).toBe(false)
+    await store.carregarDoBanco()
+    expect(store.liberada).toBe(true)
+    expect(store.dadosLiberados).toHaveLength(5)
+    expect(store.liberacao.por.nome).toBe('Ana Lima')
+    expect(store.cargaGravada.arquivoNome).toBe('teste-clientes.xlsx')
   })
 
   it('correções depois da liberação não mudam o painel até liberar de novo', async () => {
     const store = await conferirPlanilhaDeTeste()
-    store.liberarParaPainel()
+    await store.liberarParaPainel()
 
     corrigirTudo(store)
     store.revalidar()
@@ -96,21 +128,21 @@ describe('liberação para o painel', () => {
     expect(store.mudouDesdeLiberacao).toBe(true)
     expect(store.dadosLiberados).toHaveLength(5) // O painel continua com a versão liberada.
 
-    store.liberarParaPainel()
+    await store.liberarParaPainel()
     expect(store.dadosLiberados).toHaveLength(15)
     expect(store.mudouDesdeLiberacao).toBe(false)
   })
 
   it('gestor não pode liberar', async () => {
     const store = await conferirPlanilhaDeTeste('gestor@ctinexus.com')
-    expect(store.liberarParaPainel()).toBe(false)
+    expect((await store.liberarParaPainel()).ok).toBe(false)
     expect(store.liberada).toBe(false)
   })
 
   it('conferir a planilha de novo desfaz liberação e alterações', async () => {
     const store = await conferirPlanilhaDeTeste()
     store.corrigirCampo(store.dadosInvalidos[0].numeroLinha, 'consultor', 'Maria Silva')
-    store.liberarParaPainel()
+    await store.liberarParaPainel()
 
     await store.processarArquivo()
     expect(store.liberada).toBe(false)

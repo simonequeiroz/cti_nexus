@@ -1,7 +1,8 @@
 <!-- Todos os erros com linha, código, campo, tipo e descrição. Tem filtro por tipo e busca. -->
 <template>
   <CartaoPainel titulo="Detalhamento dos erros" descricao="Linha da planilha, campo com problema e o que precisa ser corrigido.">
-    <template #acoes>
+    <!-- Sem erros, não há o que buscar: a busca só aparece quando existe erro na planilha. -->
+    <template v-if="store.ocorrencias.length" #acoes>
       <div role="search" class="print:hidden">
         <label for="busca-erros" class="sr-only">Buscar erros</label>
         <input
@@ -38,9 +39,7 @@
         <td class="px-4 py-2.5">{{ ocorrencia.descricao }}</td>
       </tr>
     </TabelaDados>
-    <MensagemVazia v-else>
-      {{ store.ocorrencias.length ? 'Nenhum erro encontrado com esse filtro.' : 'Nenhum erro encontrado. A planilha está pronta para a análise.' }}
-    </MensagemVazia>
+    <MensagemVazia v-else>{{ mensagemVazia }}</MensagemVazia>
   </CartaoPainel>
 </template>
 
@@ -70,6 +69,13 @@ const opcoesFiltro = computed(() => [
   { nome: 'Todos', quantidade: store.ocorrencias.length },
   ...store.errosPorTipo
 ])
+
+// Diz por que a tabela está vazia: busca sem resultado, erros já corrigidos ou planilha sem erro desde o início.
+const mensagemVazia = computed(() => {
+  if (store.ocorrencias.length) return 'Nenhum erro encontrado com essa busca ou filtro.'
+  if (store.alteracoes.length) return 'Todos os erros foram corrigidos na Validação. O que foi mudado aparece no Registro de alterações, logo abaixo.'
+  return 'Nenhum erro encontrado. A planilha está pronta para a análise.'
+})
 
 const ocorrenciasFiltradas = computed(() => {
   const termo = busca.value.trim().toLowerCase()

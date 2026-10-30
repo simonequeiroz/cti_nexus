@@ -3,6 +3,7 @@
 // Este arquivo só prepara o axios. As rotas de cada parte ficam nos outros services:
 //   autenticacaoService.js  → /auth/login, /auth/cadastro, /auth/me, /auth/esqueci-senha, /auth/trocar-senha   (AutenticacaoController.java)
 //   usuariosService.js      → /admin/usuarios                         (AdminUsuarioController.java)
+//   uploadService.js        → /uploads/validadas, /uploads, /clientes  (UploadController.java e ClienteController.java)
 import axios from 'axios' // Biblioteca que faz as chamadas HTTP.
 import router from '../router' // Para voltar ao login quando o acesso vencer.
 import { useAutenticacaoStore } from '../stores/autenticacaoStore' // Para sair da conta quando o acesso vencer.

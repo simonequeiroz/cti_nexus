@@ -122,7 +122,7 @@ describe('tela Usuários', () => {
   it('não deixa o sistema sem administrador ativo', async () => {
     const store = await entrarComoAdministrador()
     expect(await store.alternarAtivo(1)).toMatch(/único administrador/)
-    expect((await store.editar(1, { nome: 'Administrador', email: 'admin@ctinexus.com', senha: '', confirmacao: '', papel: 'gestor' })).papel).toMatch(/único administrador/)
+    expect((await store.editar(1, { nome: 'Carla Mendes', email: 'admin@ctinexus.com', senha: '', confirmacao: '', papel: 'gestor' })).papel).toMatch(/único administrador/)
   })
 
   it('desativado não entra mais', async () => {

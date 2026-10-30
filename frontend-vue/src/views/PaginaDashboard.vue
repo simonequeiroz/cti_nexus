@@ -1,8 +1,11 @@
 <!-- Tela de dashboard: destaques, indicadores, gráficos, estatísticas e insights dos clientes LIBERADOS (não basta estarem aprovados). -->
 <template>
   <LayoutSistema>
+    <!-- Sem planilha nesta sessão: busca no banco a última carga liberada (carregarDoBanco). -->
+    <p v-if="store.carregandoPainel" role="status" class="py-24 text-center text-regular">Carregando o painel…</p>
+
     <RelatorioVazio
-      v-if="!store.quantidadeValidas && !store.liberada"
+      v-else-if="!store.quantidadeValidas && !store.liberada"
       titulo="Nenhum dado para o painel"
       texto="Envie e confira uma planilha com pelo menos uma linha aprovada para ver os gráficos e as conclusões."
     />
@@ -26,7 +29,7 @@
       <div class="flex flex-col xl:flex-row xl:items-end xl:justify-between gap-6">
         <IntroducaoPagina etapa="Passo 4 de 4 — Dashboard" titulo="Painel da carteira">
           <p>
-            Análise dos {{ store.quantidadeLiberados }} clientes de <strong class="text-black-dark">{{ store.nomeArquivo }}</strong>,
+            Análise dos {{ store.quantidadeLiberados }} clientes de <strong class="text-black-dark">{{ nomeDaPlanilha }}</strong>,
             liberados por {{ store.liberacao.por?.nome ?? '—' }} em {{ formatarData(store.liberacao.em) }}.
             <template v-if="foraDoPainel">
               {{ foraDoPainel }} {{ foraDoPainel === 1 ? 'linha ficou' : 'linhas ficaram' }} de fora
@@ -84,6 +87,10 @@
               Ainda {{ store.quantidadeInvalidas === 1 ? 'há 1 linha' : `há ${store.quantidadeInvalidas} linhas` }} fora do painel.
               {{ auth.pode('corrigir_dados') ? 'Corrija para a análise ficar completa.' : 'A equipe de operações precisa corrigir para a análise ficar completa.' }}
             </template>
+            <template v-else-if="foraDoPainel">
+              {{ foraDoPainel === 1 ? '1 linha da última planilha ficou' : `${foraDoPainel} linhas da última planilha ficaram` }} de fora.
+              {{ auth.pode('enviar_planilha') ? 'Corrija a planilha e envie de novo para a análise ficar completa.' : 'A equipe de operações precisa corrigir para a análise ficar completa.' }}
+            </template>
             <template v-else>
               Todos os clientes da planilha estão no painel. {{ auth.pode('enviar_planilha') ? 'Guarde o relatório ou envie outra planilha.' : 'Veja o relatório para guardar ou imprimir.' }}
             </template>
@@ -102,7 +109,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import LayoutSistema from '../components/layout/LayoutSistema.vue'
 import IntroducaoPagina from '../components/layout/IntroducaoPagina.vue'
 import GradeEstatisticas from '../components/ui/GradeEstatisticas.vue'
@@ -152,7 +159,15 @@ const indicadores = computed(() => {
   ]
 })
 
-const foraDoPainel = computed(() => store.quantidadeLinhas - store.quantidadeLiberados) // Linhas com erro (ou corrigidas e ainda não liberadas).
+// Abriu o painel sem planilha nesta sessão (ex.: o gestor no dia seguinte): mostra a última carga gravada no banco.
+onMounted(() => store.carregarDoBanco())
+
+const nomeDaPlanilha = computed(() => store.nomeArquivo || store.cargaGravada?.arquivoNome || '')
+
+// Linhas fora do painel: as com erro (ou corrigidas e ainda não liberadas) da planilha aberta; sem planilha, as da última carga.
+const foraDoPainel = computed(() => store.quantidadeLinhas
+  ? store.quantidadeLinhas - store.quantidadeLiberados
+  : (store.cargaGravada?.linhasInvalidas ?? 0))
 
 // Insights da mais para a menos importante: os 3 primeiros vão para o topo, o resto fica na lista (sem repetir).
 const ORDEM_DA_PRIORIDADE = { Alta: 0, Média: 1, Baixa: 2 }
