@@ -19,7 +19,7 @@ const DICIONARIO = {
   consultor: ['texto', 'Ana Souza', 'Nome padronizado (ANA SOUZA vira Ana Souza)'],
   segmento: ['categoria', 'Indústria', `Um destes: ${SEGMENTOS_VALIDOS.join(', ')} (IND., Industria e INDUSTRIA viram Indústria)`],
   nivel_cliente: ['categoria', 'A', `Somente ${NIVEIS_VALIDOS.join(', ')} (minúscula é corrigida)`],
-  faturamento_anual: ['número', 'R$ 1.850.000,00', 'Número maior ou igual a zero; aceita "R$ 1.850.000,00" ou 1850000'],
+  faturamento_anual: ['número', 'R$ 1.850.000,00', 'Número maior que zero; aceita "R$ 1.850.000,00" ou 1850000'],
   servicos_contratados: ['texto múltiplo', 'Internet Dedicada;Firewall', 'Vários serviços separados por ";"'],
   data_contratacao: ['data', '15/01/2025', 'Data válida no formato dd/mm/aaaa (ou célula de data do Excel)'],
   cidade: ['texto', 'Campinas', 'Opcional; capitalização corrigida'],

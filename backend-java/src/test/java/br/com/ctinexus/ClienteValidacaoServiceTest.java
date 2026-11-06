@@ -1,6 +1,6 @@
 package br.com.ctinexus;
 
-import br.com.ctinexus.dto.ClienteDTO;
+import br.com.ctinexus.dto.LinhaPlanilha;
 import br.com.ctinexus.service.ClienteValidacaoService;
 import br.com.ctinexus.service.ClienteValidacaoService.ResultadoLinha;
 import org.junit.jupiter.api.Test;
@@ -15,7 +15,7 @@ import static org.junit.jupiter.api.Assertions.*;
 // Os casos imitam a planilha de teste do front, para provar que o front e o back-end concordam.
 class ClienteValidacaoServiceTest {
 
-    private final ClienteValidacaoService validacao = new ClienteValidacaoService();
+    private final ClienteValidacaoService validacao = new ClienteValidacaoService(20000);
 
     // Uma linha correta; cada teste muda só o campo que quer testar.
     private static Map<String, String> linhaCorreta() {
@@ -35,7 +35,7 @@ class ClienteValidacaoServiceTest {
     }
 
     private ResultadoLinha validarUma(Map<String, String> campos) {
-        return validacao.validar(List.of(new ClienteDTO(2, campos))).getFirst();
+        return validacao.validar(List.of(new LinhaPlanilha(2, campos))).getFirst();
     }
 
     @Test
@@ -92,7 +92,7 @@ class ClienteValidacaoServiceTest {
                 "Data de contratação deve estar no formato dd/mm/aaaa e existir no calendário",
                 "UF deve ter 2 letras (ex.: SP)",
                 "E-mail \"contato@@alfa\" não tem formato válido (ex.: contato@empresa.com.br)",
-                "Faturamento anual não pode ser negativo"
+                "Faturamento anual deve ser maior que zero"
         ), erros);
     }
 
@@ -100,9 +100,16 @@ class ClienteValidacaoServiceTest {
     void codigoRepetidoRecusaASegundaLinha() {
         Map<String, String> outra = linhaCorreta();
         outra.put("codigo_cliente", "cti001"); // Mesmo código, escrito diferente.
-        List<ResultadoLinha> r = validacao.validar(List.of(new ClienteDTO(2, linhaCorreta()), new ClienteDTO(5, outra)));
+        List<ResultadoLinha> r = validacao.validar(List.of(new LinhaPlanilha(2, linhaCorreta()), new LinhaPlanilha(5, outra)));
         assertTrue(r.get(0).valida());
         assertEquals(List.of("Código do cliente repetido (já aparece na linha 2)"), r.get(1).erros());
+    }
+
+    @Test
+    void faturamentoZeroEhRecusado() { // Regra da aula: maior que zero (bloqueia nulo, zero e negativo).
+        Map<String, String> campos = linhaCorreta();
+        campos.put("faturamento_anual", "0");
+        assertEquals(List.of("Faturamento anual deve ser maior que zero"), validarUma(campos).erros());
     }
 
     @Test

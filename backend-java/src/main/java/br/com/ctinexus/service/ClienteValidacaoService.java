@@ -1,6 +1,9 @@
 package br.com.ctinexus.service;
 
 import br.com.ctinexus.dto.ClienteDTO;
+import br.com.ctinexus.dto.LinhaPlanilha;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -8,11 +11,13 @@ import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.regex.Pattern;
 
 import static br.com.ctinexus.service.Colunas.*; // Permite escrever CODIGO em vez de Colunas.CODIGO.
@@ -26,6 +31,12 @@ public class ClienteValidacaoService {
     private static final Pattern RE_UF = Pattern.compile("^[A-Z]{2}$");
     private static final Pattern RE_EMAIL = Pattern.compile("^[a-z0-9._%+-]+@[a-z0-9-]+(\\.[a-z0-9-]+)*\\.[a-z]{2,}$");
 
+    private final int maxLinhas; // Limite de linhas por envio (upload.max-linhas no application.properties).
+
+    public ClienteValidacaoService(@Value("${upload.max-linhas}") int maxLinhas) {
+        this.maxLinhas = maxLinhas;
+    }
+
     /**
      * Resultado de uma linha.
      * valores = os campos já padronizados, no formato que o Python grava (data aaaa-mm-dd, faturamento 1850000.00).
@@ -34,11 +45,71 @@ public class ClienteValidacaoService {
         public boolean valida() { return erros.isEmpty(); } // Válida = nenhum erro.
     }
 
-    public List<ResultadoLinha> validar(List<ClienteDTO> linhas) {
+    // A lista veio vazia ou passou do limite? Vale para as duas rotas que recebem clientes.
+    public void conferirTamanho(List<?> linhas) {
+        if (linhas == null || linhas.isEmpty()) {  // Sem linhas: 400.
+            throw new RegraDeNegocioException(HttpStatus.BAD_REQUEST, "Não há clientes aprovados para enviar.");
+        }
+        if (linhas.size() > maxLinhas) {           // Acima do limite: 422.
+            throw new RegraDeNegocioException(HttpStatus.UNPROCESSABLE_ENTITY,
+                    "A planilha passou do limite de " + maxLinhas + " linhas. Divida em arquivos menores.");
+        }
+    }
+
+    // ===== Aula "Validação de dados no Backend": POST /api/clientes/validar =====
+    // O DTO valida UMA linha de cada vez. Só o Service consegue olhar a lista INTEIRA.
+    // Aqui, se uma linha tem problema, a lista toda volta com erro (no envio real, abaixo, só a linha é recusada).
+    public List<ClienteDTO> validarEPreparar(List<ClienteDTO> clientes) {
+        conferirTamanho(clientes);
+
+        Set<String> codigos = new HashSet<>(); // Set não guarda repetidos: add() devolve false se o código já está lá.
+        for (ClienteDTO cliente : clientes) {
+            // Padroniza ANTES de comparar: "cti001" e " CTI001 " são o mesmo cliente.
+            String codigo = Padronizacao.codigo(cliente.codigoCliente());
+            if (!codigos.add(codigo)) {
+                throw new RegraDeNegocioException(HttpStatus.BAD_REQUEST, "Código repetido na planilha: " + codigo, "codigoCliente");
+            }
+        }
+
+        return clientes.stream()         // Passa por cada cliente da lista...
+                .map(this::padronizar)   // ...troca pelo cliente já arrumado...
+                .toList();               // ...e junta tudo numa lista nova.
+    }
+
+    // Um record não muda depois de criado: por isso "arrumar" é criar outro ClienteDTO, com os valores limpos.
+    // Usa a classe Padronizacao, a mesma do envio real, para as duas rotas padronizarem do mesmo jeito.
+    private ClienteDTO padronizar(ClienteDTO c) {
+        String segmento = Padronizacao.segmento(c.segmento()); // "IND." vira "Indústria".
+        if (!SEGMENTOS_VALIDOS.contains(segmento)) {           // Segmento desconhecido não entra no painel.
+            throw new RegraDeNegocioException(HttpStatus.BAD_REQUEST,
+                    "Segmento \"" + segmento + "\" não está na lista (" + String.join(", ", SEGMENTOS_VALIDOS) + ")", "segmento");
+        }
+
+        String servicos = Padronizacao.servicos(c.servicosContratados()); // "MPLS ; Firewall" vira "MPLS;Firewall".
+        if (servicos.isEmpty()) { // O @NotBlank deixa passar ";", que não tem serviço nenhum.
+            throw new RegraDeNegocioException(HttpStatus.BAD_REQUEST, "Os serviços contratados são obrigatórios", "servicosContratados");
+        }
+
+        return new ClienteDTO(
+                Padronizacao.codigo(c.codigoCliente()),     // " cti001 " vira "CTI001".
+                Padronizacao.capitalizar(c.nomeCliente()),  // "METALÚRGICA ALFA" vira "Metalúrgica Alfa".
+                Padronizacao.nomePessoa(c.consultor()),     // "ANA SOUZA" vira "Ana Souza".
+                segmento,
+                Padronizacao.maiusculas(c.nivelCliente()),  // "b" vira "B".
+                c.faturamentoAnual(),                       // Já validado pelo DTO: fica como veio.
+                servicos,
+                c.dataContratacao(),                        // Já validada pelo DTO: fica como veio.
+                Padronizacao.capitalizar(c.cidade()),       // Opcionais: null vira "".
+                Padronizacao.maiusculas(c.uf()),            // "sp" vira "SP".
+                Padronizacao.email(c.email()));             // Tudo em minúsculas.
+    }
+
+    // ===== Envio real: POST /api/uploads/validadas (aula "Telas do Backend") =====
+    public List<ResultadoLinha> validar(List<LinhaPlanilha> linhas) {
         List<ResultadoLinha> saida = new ArrayList<>();
         Map<String, Integer> primeiraLinhaDoCodigo = new HashMap<>(); // Código -> linha em que apareceu primeiro.
 
-        for (ClienteDTO linha : linhas) {
+        for (LinhaPlanilha linha : linhas) {
             Map<String, String> bruto = linha.campos();
             List<String> erros = new ArrayList<>();
             List<String> avisos = new ArrayList<>();
@@ -86,10 +157,10 @@ public class ClienteValidacaoService {
             if (!email.isEmpty() && (!RE_EMAIL.matcher(email).matches() || email.contains("..")))
                 erros.add("E-mail \"" + email + "\" não tem formato válido (ex.: contato@empresa.com.br)");
 
-            // 8) Faturamento numérico e não negativo.
+            // 8) Faturamento numérico e maior que zero.
             if (Padronizacao.texto(bruto.get(FATURAMENTO)).isEmpty()) erros.add("Faturamento anual está vazio");
             else if (faturamento.isEmpty()) erros.add("Faturamento anual deve ser numérico");
-            else if (faturamento.get().signum() < 0) erros.add("Faturamento anual não pode ser negativo");
+            else if (faturamento.get().signum() <= 0) erros.add("Faturamento anual deve ser maior que zero");
 
             // 9) Código repetido: a primeira linha com o código continua valendo; as outras são recusadas.
             String codigo = tratada.get(CODIGO);

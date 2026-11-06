@@ -188,14 +188,14 @@ O Thunder Client novo pede login com conta da empresa dele. Em vez disso, use a 
 1. Abra **`backend-java/testes-api.http`**.
 2. Com o back-end ligado, clique em **Send Request** em cada teste, na ordem.
 
-São os testes dos slides 27 a 30 (cadastro, login, rota privada sem e com token, `/me`), a aprovação pelo administrador e o 403 de autorização. Os testes 8 a 12 são da aula "Telas do Backend": `/health`, envio da planilha (uma linha é recusada de propósito), painel e histórico de cargas. O token é guardado sozinho entre os testes. Para repetir, troque `@emailTeste` por um e-mail novo, porque o mesmo e-mail não cadastra duas vezes.
+São os testes dos slides 27 a 30 (cadastro, login, rota privada sem e com token, `/me`), a aprovação pelo administrador e o 403 de autorização. Os testes 8 a 12 são da aula "Telas do Backend": `/health`, envio da planilha (uma linha é recusada de propósito), painel e histórico de cargas. Os testes 13 a 16 são da aula "Validação de dados no Backend" (slides 26 e 27, código repetido e data que não existe): só precisam do back-end ligado e do token do teste 9. O token é guardado sozinho entre os testes. Para repetir, troque `@emailTeste` por um e-mail novo, porque o mesmo e-mail não cadastra duas vezes.
 
 Atenção: no VS Code também há a extensão **Supabase**, com um raio verde, que não é usada no projeto. Pode desativar.
 
 ## 6. Testes automáticos
 
 ```powershell
-cd backend-java ; mvn test      # 13 testes do back-end (banco H2 temporário; não precisa do Neon nem do Python)
+cd backend-java ; mvn test      # 23 testes do back-end (banco H2 temporário; não precisa do Neon nem do Python)
 cd frontend-vue ; npm test      # 76 testes do front (usa services/apiFalsa.js, não precisa do back-end)
 ```
 
@@ -212,7 +212,7 @@ cd frontend-vue ; npm test      # 76 testes do front (usa services/apiFalsa.js, 
 
 ## 8. Próximos passos
 
-1. ~~Planilha no back-end~~ ✅ (29/10).
+1. ~~Planilha no back-end~~ ✅ (29/10). ~~Validação com DTO, `@Valid` e `POST /api/clientes/validar`~~ ✅ (05/11).
 2. **Gráficos em Python** (`analytics-python/graficos.py`): Matplotlib com o **boxplot** de faturamento por segmento, que o plano de ensino exige, e um teste estatístico (Shapiro-Wilk ou Qui-quadrado).
 3. **Publicar:** back-end no **Render** e front na **Vercel**.
    - No Render, defina as mesmas variáveis do `.env`, mais `ADMIN_SENHA` forte e `CORS_ORIGENS` com o endereço da Vercel.

@@ -23,7 +23,7 @@ export const REGRAS_VERIFICADAS = [
   'Colunas do modelo e campos obrigatórios',
   'Código do cliente sem repetição',
   `Segmento da lista e nível ${NIVEIS_VALIDOS.slice(0, -1).join(', ')} ou ${NIVEIS_VALIDOS.at(-1)}`,
-  'Faturamento numérico e não negativo',
+  'Faturamento numérico e maior que zero',
   'Data de contratação válida (dd/mm/aaaa)',
   'Cidade e UF opcionais; UF com 2 letras',
   'E-mail opcional; se preenchido, no formato nome@empresa.com.br'

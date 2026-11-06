@@ -156,3 +156,76 @@ Authorization: Bearer {{loginAnalista.response.body.token}}
 ### TESTE 12 — Histórico das cargas (quem enviou, quem liberou, quantas linhas)
 GET {{api}}/uploads
 Authorization: Bearer {{loginAnalista.response.body.token}}
+
+### =====================================================================
+### AULA "VALIDAÇÃO DE DADOS NO BACKEND": DTO + @Valid + Service
+### Só precisa do back-end ligado: esta rota não usa o Python nem grava no banco.
+### Rode antes o TESTE 9, para pegar o token da analista.
+### =====================================================================
+
+### TESTE 13 — JSON válido (slide 26). Esperado: 200 com a lista arrumada ("IND." vira "Indústria").
+POST {{api}}/clientes/validar
+Authorization: Bearer {{loginAnalista.response.body.token}}
+Content-Type: application/json
+
+[
+  {
+    "codigoCliente": "CTI001",
+    "nomeCliente": "Metalúrgica Horizonte",
+    "consultor": "Ana Souza",
+    "segmento": "IND.",
+    "nivelCliente": "A",
+    "faturamentoAnual": 1850000,
+    "servicosContratados": "Internet Dedicada;Firewall",
+    "dataContratacao": "2025-01-15",
+    "cidade": "Campinas",
+    "uf": "SP"
+  }
+]
+
+
+### TESTE 14 — JSON inválido (slide 27). Esperado: 400 com o erro de cada campo em "campos".
+### O DTO recusa: nome vazio, nível D, faturamento negativo, serviço vazio e UF com 3 letras.
+POST {{api}}/clientes/validar
+Authorization: Bearer {{loginAnalista.response.body.token}}
+Content-Type: application/json
+
+[
+  {
+    "codigoCliente": "CTI002",
+    "nomeCliente": "",
+    "consultor": "Carlos Lima",
+    "segmento": "Comercio",
+    "nivelCliente": "D",
+    "faturamentoAnual": -10,
+    "servicosContratados": "",
+    "dataContratacao": "2025-01-30",
+    "cidade": "Hortolândia",
+    "uf": "SPP"
+  }
+]
+
+
+### TESTE 15 — Código repetido: cada linha está certa, quem percebe é o SERVICE, que olha a lista inteira.
+### Esperado: 400 "Código repetido na planilha: CTI001".
+POST {{api}}/clientes/validar
+Authorization: Bearer {{loginAnalista.response.body.token}}
+Content-Type: application/json
+
+[
+  { "codigoCliente": "CTI001", "nomeCliente": "Metalúrgica Horizonte", "consultor": "Ana Souza", "segmento": "IND.",
+    "nivelCliente": "A", "faturamentoAnual": 1850000, "servicosContratados": "Firewall", "dataContratacao": "2025-01-15" },
+  { "codigoCliente": "cti001", "nomeCliente": "Outra Empresa", "consultor": "Carlos Lima", "segmento": "Comercio",
+    "nivelCliente": "B", "faturamentoAnual": 50000, "servicosContratados": "MPLS", "dataContratacao": "2024-05-10" }
+]
+
+
+### TESTE 16 — Data que não existe (31 de fevereiro). Esperado: 400 apontando "[0].dataContratacao".
+POST {{api}}/clientes/validar
+Authorization: Bearer {{loginAnalista.response.body.token}}
+Content-Type: application/json
+
+[
+  { "codigoCliente": "CTI003", "nomeCliente": "Clínica Vida", "consultor": "Ana Souza", "segmento": "Saúde",
+    "nivelCliente": "C", "faturamentoAnual": 98000.50, "servicosContratados": "MPLS", "dataContratacao": "2025-02-31" }
+]

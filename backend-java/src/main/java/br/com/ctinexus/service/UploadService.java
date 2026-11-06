@@ -1,6 +1,6 @@
 package br.com.ctinexus.service;
 
-import br.com.ctinexus.dto.ClienteDTO;
+import br.com.ctinexus.dto.LinhaPlanilha;
 import br.com.ctinexus.dto.UploadDtos.AlteracaoEnvio;
 import br.com.ctinexus.dto.UploadDtos.EnvioValidadasRequest;
 import br.com.ctinexus.dto.UploadDtos.LinhaEnvio;
@@ -9,7 +9,6 @@ import br.com.ctinexus.dto.UploadDtos.UploadResponse;
 import br.com.ctinexus.model.Usuario;
 import br.com.ctinexus.repository.UsuarioRepository;
 import br.com.ctinexus.service.ClienteValidacaoService.ResultadoLinha;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
@@ -30,30 +29,22 @@ public class UploadService {
     private final ClienteValidacaoService validacao;
     private final PythonEtlService python;
     private final UsuarioRepository usuarioRepository;
-    private final int maxLinhas;
 
     public UploadService(ClienteValidacaoService validacao, PythonEtlService python,
-                         UsuarioRepository usuarioRepository, @Value("${upload.max-linhas}") int maxLinhas) {
+                         UsuarioRepository usuarioRepository) {
         this.validacao = validacao;
         this.python = python;
         this.usuarioRepository = usuarioRepository;
-        this.maxLinhas = maxLinhas;
     }
 
     public UploadResponse receberValidadas(EnvioValidadasRequest req, Usuario quemLibera) {
-        if (req == null || req.linhas() == null || req.linhas().isEmpty()) {  // Sem linhas: 400.
-            throw new RegraDeNegocioException(HttpStatus.BAD_REQUEST, "Não há clientes aprovados para enviar.");
-        }
-        if (req.linhas().size() > maxLinhas) {                                  // Acima do limite: 422.
-            throw new RegraDeNegocioException(HttpStatus.UNPROCESSABLE_ENTITY,
-                    "A planilha passou do limite de " + maxLinhas + " linhas. Divida em arquivos menores.");
-        }
+        validacao.conferirTamanho(req == null ? null : req.linhas()); // Vazia: 400. Acima do limite: 422.
 
         String nome = nomeSeguro(req.arquivoNome());
         int descartadas = req.descartadas() == null ? 0 : Math.max(0, req.descartadas());
 
-        // Cada linha do JSON vira um ClienteDTO (número da linha + texto de cada coluna).
-        List<ClienteDTO> brutas = new ArrayList<>(req.linhas().size());
+        // Cada linha do JSON vira uma LinhaPlanilha (número da linha + texto de cada coluna).
+        List<LinhaPlanilha> brutas = new ArrayList<>(req.linhas().size());
         int posicao = 2; // A linha 1 da planilha é o cabeçalho.
         for (LinhaEnvio e : req.linhas()) {
             Map<String, String> campos = new LinkedHashMap<>();
@@ -69,7 +60,7 @@ public class UploadService {
             campos.put(UF, e.uf());
             campos.put(EMAIL, e.email());
             int numero = e.numeroLinha() == null ? posicao : e.numeroLinha();
-            brutas.add(new ClienteDTO(numero, campos));
+            brutas.add(new LinhaPlanilha(numero, campos));
             posicao++;
         }
 
@@ -77,7 +68,7 @@ public class UploadService {
     }
 
     // Valida de novo, separa válidas e rejeitadas, manda as válidas ao Python e monta a resposta.
-    private UploadResponse registrar(String nome, List<ClienteDTO> brutas, int descartadas,
+    private UploadResponse registrar(String nome, List<LinhaPlanilha> brutas, int descartadas,
                                      EnvioValidadasRequest req, Usuario quemLibera) {
         List<ResultadoLinha> resultado = validacao.validar(brutas); // VALIDAÇÃO NO BACK-END.
         List<Map<String, String>> validas = new ArrayList<>();

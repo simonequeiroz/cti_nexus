@@ -92,7 +92,8 @@ describe('regras do dicionário de dados', () => {
     expect(problemasDe({ nivel_cliente: '' })).toEqual(['nivel_cliente: Campo vazio'])
   })
 
-  it('recusa faturamento negativo ou não numérico', () => {
+  it('recusa faturamento zero, negativo ou não numérico', () => {
+    expect(problemasDe({ faturamento_anual: 0 })).toEqual(['faturamento_anual: Valor inválido'])
     expect(problemasDe({ faturamento_anual: -1000 })).toEqual(['faturamento_anual: Valor inválido'])
     expect(problemasDe({ faturamento_anual: 'mil reais' })).toEqual(['faturamento_anual: Valor inválido'])
   })

@@ -109,8 +109,8 @@ export function validarLinhas(linhas) {
       registrarProblema('faturamento_anual', 'Campo vazio', 'Faturamento anual está vazio')
     } else if (Number.isNaN(faturamento)) {
       registrarProblema('faturamento_anual', 'Valor inválido', 'Faturamento anual deve ser numérico')
-    } else if (faturamento < 0) {
-      registrarProblema('faturamento_anual', 'Valor inválido', 'Faturamento anual não pode ser negativo')
+    } else if (faturamento <= 0) { // Regra da aula de validação no back-end: maior que zero (bloqueia zero e negativo).
+      registrarProblema('faturamento_anual', 'Valor inválido', 'Faturamento anual deve ser maior que zero')
     }
 
     // Registro duplicado: o mesmo código já apareceu numa linha anterior (a primeira ocorrência continua valendo).

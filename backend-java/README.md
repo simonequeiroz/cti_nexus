@@ -58,6 +58,7 @@ Ele fica só no seu PC (o Git ignora).
 | POST | `/api/uploads/validadas` | analista e administrador (`aprovar_carga`) | Linhas aprovadas pelo front → valida de novo → Python grava. 201 com `loteId` e `rejeitadas` |
 | GET | `/api/uploads` | todos (`ver_painel`) | Cargas gravadas (quem enviou, quem liberou, quantas linhas) |
 | GET | `/api/clientes` | todos (`ver_painel`) | Clientes da última carga (formato das linhas da planilha) |
+| POST | `/api/clientes/validar` | analista e administrador (`enviar_planilha`) | Aula de validação: lista de `ClienteDTO` → `@Valid` + Service → 200 com a lista padronizada ou 400 com `campos`. Não grava e não chama o Python |
 | GET | `/api/admin/usuarios` | administrador | Lista usuários e pedidos |
 | POST | `/api/admin/usuarios` | administrador | Cadastra `{nome, email, senha, papel}`, já ativo |
 | PUT | `/api/admin/usuarios/{id}` | administrador | Edita `{nome, email, senha?, papel}` (senha vazia = mantém) |
@@ -86,8 +87,8 @@ Front ─► UploadController ─► UploadService ─► ClienteValidacaoServic
 
 ## Testes
 
-- **Automático:** `mvn test` (13 testes, banco H2 temporário, não precisa do Neon nem do Python):
-  `AutenticacaoFluxoTest` (login, usuários, esqueci minha senha), `ClienteValidacaoServiceTest` (regras da planilha)
-  e `UploadFluxoTest` (envio da planilha com o Python "de mentira", painel, 400/403/422/503).
+- **Automático:** `mvn test` (23 testes, banco H2 temporário, não precisa do Neon nem do Python):
+  `AutenticacaoFluxoTest` (login, usuários, esqueci minha senha), `ClienteValidacaoServiceTest` (regras da planilha),
+  `ClienteValidarRotaTest` (DTO, `@Valid` e erros da rota de validação) e `UploadFluxoTest` (envio da planilha com o Python "de mentira", painel, 400/403/422/503).
 - **Thunder Client:** com o sistema rodando, siga a tabela acima. Para rotas que exigem login,
   em Auth → Bearer, cole o token recebido no login.
