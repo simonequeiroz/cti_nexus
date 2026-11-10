@@ -16,6 +16,12 @@ export async function listarClientes() {
   return data
 }
 
+// GET /api/clientes/codigos  →  todos os clientes já cadastrados: [{ codigo, nome }]
+export async function listarCodigosCadastrados() {
+  const { data } = await api.get('/clientes/codigos')
+  return data
+}
+
 // GET /api/uploads  →  cargas gravadas, a mais nova primeiro ({ id, arquivoNome, aprovadoPor, criadoEm, ... })
 export async function listarCargas() {
   const { data } = await api.get('/uploads')

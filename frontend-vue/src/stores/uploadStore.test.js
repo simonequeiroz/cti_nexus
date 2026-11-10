@@ -77,6 +77,73 @@ describe('registro de alterações', () => {
   })
 })
 
+describe('código digitado na correção', () => {
+  const clienteAntigo = { numeroLinha: 2, codigoCliente: 'ANTIGO1', nomeCliente: 'Empresa Antiga', consultor: 'Ana Souza', segmento: 'Indústria', nivelCliente: 'A', faturamentoAnual: '1000', servicosContratados: 'MPLS', dataContratacao: '01/01/2024', cidade: '', uf: '', email: '' }
+
+  // Primeira linha com erro e o código de uma linha aprovada.
+  function linhaEErroCodigoUsado(store) {
+    return { linha: store.dadosInvalidos[0].numeroLinha, codigoUsado: store.dadosValidos[0].codigo_cliente }
+  }
+
+  it('avisa enquanto digita se o código está em outra linha, no banco ou livre', async () => {
+    const store = await conferirPlanilhaDeTeste()
+    await api.post('/uploads/validadas', { arquivoNome: 'antiga.xlsx', linhas: [clienteAntigo] })
+    await store.carregarCodigosDoBanco()
+    const { linha, codigoUsado } = linhaEErroCodigoUsado(store)
+
+    expect(store.situacaoDoCodigo(linha, codigoUsado.toLowerCase())).toMatchObject({ livre: false })
+    expect(store.situacaoDoCodigo(linha, codigoUsado).mensagem).toContain('já está na linha')
+    expect(store.situacaoDoCodigo(linha, 'antigo1')).toEqual({ livre: false, mensagem: 'Este código já está cadastrado para Empresa Antiga' })
+    expect(store.situacaoDoCodigo(linha, 'CODIGO-NOVO')).toMatchObject({ livre: true })
+    expect(store.situacaoDoCodigo(linha, '   ')).toBeNull()
+  })
+
+  it('não aprova código que já existe no banco', async () => {
+    const store = await conferirPlanilhaDeTeste()
+    await api.post('/uploads/validadas', { arquivoNome: 'antiga.xlsx', linhas: [clienteAntigo] })
+    await store.carregarCodigosDoBanco()
+    const { linha } = linhaEErroCodigoUsado(store)
+
+    store.corrigirCampo(linha, 'codigo_cliente', 'antigo1')
+    store.revalidar()
+    expect(store.ocorrencias.some(o => o.linha === linha && o.descricao.includes('já cadastrado para Empresa Antiga'))).toBe(true)
+    expect(store.dadosValidos.some(c => c.codigo_cliente === 'ANTIGO1')).toBe(false)
+  })
+
+  it('avisa ao abrir a tela se o servidor não respondeu', async () => {
+    const store = await conferirPlanilhaDeTeste('gestor@ctinexus.com') // A rota recusa o gestor: é como o servidor não responder.
+    expect(await store.carregarCodigosDoBanco()).toBe(false)
+    expect(store.situacaoDoCodigo(2, 'CODIGO-NOVO').mensagem).toContain('será conferido ao liberar')
+  })
+
+  it('depois de liberar, a linha não é acusada de repetir o próprio código', async () => {
+    const store = await conferirPlanilhaDeTeste()
+    corrigirTudo(store)
+    store.revalidar()
+    expect(store.quantidadeValidas).toBe(15)
+
+    await store.liberarParaPainel()
+    expect(store.codigosDoBanco.size).toBe(15) // Agora os códigos digitados também estão no banco.
+    store.revalidar()
+    expect(store.quantidadeValidas).toBe(15)
+    expect((await store.liberarParaPainel()).ok).toBe(true)
+  })
+
+  it('marca para o servidor só as linhas com código digitado', async () => {
+    const store = await conferirPlanilhaDeTeste()
+    const espiao = vi.spyOn(api, 'post')
+    const linha = store.dadosInvalidos[0].numeroLinha
+    const correta = store.dadosBrutos.find((_, i) => !store.dadosInvalidos.some(item => item.numeroLinha === i + 2))
+    for (const campo of Object.keys(correta)) store.corrigirCampo(linha, campo, campo === 'codigo_cliente' ? 'DIGITADO1' : correta[campo])
+    store.revalidar()
+    await store.liberarParaPainel()
+
+    const enviadas = espiao.mock.calls.find(([rota]) => rota === '/uploads/validadas')[1].linhas
+    expect(enviadas.filter(l => l.codigoEditado).map(l => l.codigoCliente)).toEqual(['DIGITADO1'])
+    espiao.mockRestore()
+  })
+})
+
 describe('liberação para o painel', () => {
   it('o painel só recebe os clientes depois de liberar', async () => {
     const store = await conferirPlanilhaDeTeste()

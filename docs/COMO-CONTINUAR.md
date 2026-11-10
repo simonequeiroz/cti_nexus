@@ -1,7 +1,7 @@
 # CTI Nexus — como continuar em outra máquina
 
 Diário do que foi feito e passo a passo para montar e ligar o sistema em qualquer computador.
-Última atualização: **29/10/2026**.
+Última atualização: **09/11/2026**.
 
 > **Para o Claude Code na outra máquina:** comece pedindo
 > *"leia o CLAUDE.md e o docs/COMO-CONTINUAR.md e vamos continuar o CTI Nexus"*.
@@ -33,6 +33,12 @@ Diário do que foi feito e passo a passo para montar e ligar o sistema em qualqu
 - **Front:** `services/uploadService.js`. O botão **Liberar** espera o servidor gravar, e o Dashboard busca a última carga no banco.
 - **Neon:** as tabelas antigas de um exercício anterior (cliente, consultor, contrato, servico, insight, telemetria) foram **renomeadas** para `antigo_*`. Nada foi apagado.
 - **Testes:** `mvn test` com 13 testes e `npm test` com 76.
+
+### 09/11/2026: código digitado na correção não pode repetir
+
+- Na tela **Validação**, o código digitado à mão tem que ser **novo**: não pode estar em outra linha da planilha nem no banco (mesmo que seja o mesmo cliente). O aviso aparece enquanto se digita.
+- Motivo: com um código que já existe no banco, o Python **substituiria** os dados daquele cliente (`ON CONFLICT ... DO UPDATE`).
+- Nova rota `GET /api/clientes/codigos` (permissão `corrigir_dados`). Ao liberar, o Java confere no banco de novo.
 
 ### Como funciona o login (para explicar na apresentação)
 
@@ -195,8 +201,8 @@ Atenção: no VS Code também há a extensão **Supabase**, com um raio verde, q
 ## 6. Testes automáticos
 
 ```powershell
-cd backend-java ; mvn test      # 23 testes do back-end (banco H2 temporário; não precisa do Neon nem do Python)
-cd frontend-vue ; npm test      # 76 testes do front (usa services/apiFalsa.js, não precisa do back-end)
+cd backend-java ; mvn test      # 25 testes do back-end (banco H2 temporário; não precisa do Neon nem do Python)
+cd frontend-vue ; npm test      # 84 testes do front (usa services/apiFalsa.js, não precisa do back-end)
 ```
 
 ---

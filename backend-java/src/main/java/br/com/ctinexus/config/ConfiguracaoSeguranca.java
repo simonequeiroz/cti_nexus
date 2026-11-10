@@ -46,6 +46,7 @@ public class ConfiguracaoSeguranca {
                         .requestMatchers("/api/admin/**").hasAuthority("gerenciar_usuarios")      // Só administrador.
                         .requestMatchers(HttpMethod.POST, "/api/uploads/**").hasAuthority("aprovar_carga") // Liberar planilha: analista e administrador.
                         .requestMatchers(HttpMethod.POST, "/api/clientes/validar").hasAuthority("enviar_planilha") // Conferir planilha: analista e administrador.
+                        .requestMatchers(HttpMethod.GET, "/api/clientes/codigos").hasAuthority("corrigir_dados") // Tela de correção: analista e administrador. Tem que vir antes da regra geral abaixo.
                         .requestMatchers(HttpMethod.GET, "/api/uploads/**", "/api/clientes/**").hasAuthority("ver_painel") // Painel: todos os papéis.
                         .anyRequest().authenticated())                                           // O resto exige token.
                 // Sem token (ou token inválido) -> 401. Com token, mas sem permissão -> 403 (padrão do Spring).

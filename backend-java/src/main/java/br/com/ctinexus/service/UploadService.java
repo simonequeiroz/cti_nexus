@@ -14,9 +14,11 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static br.com.ctinexus.service.Colunas.*;
 
@@ -29,12 +31,14 @@ public class UploadService {
     private final ClienteValidacaoService validacao;
     private final PythonEtlService python;
     private final UsuarioRepository usuarioRepository;
+    private final ConsultaCargaService consulta;
 
     public UploadService(ClienteValidacaoService validacao, PythonEtlService python,
-                         UsuarioRepository usuarioRepository) {
+                         UsuarioRepository usuarioRepository, ConsultaCargaService consulta) {
         this.validacao = validacao;
         this.python = python;
         this.usuarioRepository = usuarioRepository;
+        this.consulta = consulta;
     }
 
     public UploadResponse receberValidadas(EnvioValidadasRequest req, Usuario quemLibera) {
@@ -45,6 +49,7 @@ public class UploadService {
 
         // Cada linha do JSON vira uma LinhaPlanilha (número da linha + texto de cada coluna).
         List<LinhaPlanilha> brutas = new ArrayList<>(req.linhas().size());
+        Set<Integer> linhasComCodigoEditado = new HashSet<>();
         int posicao = 2; // A linha 1 da planilha é o cabeçalho.
         for (LinhaEnvio e : req.linhas()) {
             Map<String, String> campos = new LinkedHashMap<>();
@@ -61,16 +66,31 @@ public class UploadService {
             campos.put(EMAIL, e.email());
             int numero = e.numeroLinha() == null ? posicao : e.numeroLinha();
             brutas.add(new LinhaPlanilha(numero, campos));
+            if (Boolean.TRUE.equals(e.codigoEditado())) linhasComCodigoEditado.add(numero);
             posicao++;
         }
 
-        return registrar(nome, brutas, descartadas, req, quemLibera);
+        return registrar(nome, brutas, descartadas, req, quemLibera, linhasComCodigoEditado);
+    }
+
+    // Código digitado à mão tem que ser novo: se já existe no banco, a gravação substituiria os dados daquele cliente.
+    // Mesma mensagem do front (utils/validacao.js). O código que veio na planilha pode existir: é a carga nova atualizando o cliente.
+    private void recusarCodigoJaCadastrado(List<ResultadoLinha> resultado, Set<Integer> linhasComCodigoEditado) {
+        if (linhasComCodigoEditado.isEmpty()) return; // Sem código digitado, nem consulta o banco.
+        Map<String, String> cadastrados = consulta.nomePorCodigo();
+        for (ResultadoLinha r : resultado) {
+            String dono = cadastrados.get(r.valores().get(CODIGO));
+            if (linhasComCodigoEditado.contains(r.numero()) && dono != null) {
+                r.erros().add("Código do cliente já cadastrado para " + dono + " (use um código que ainda não exista)");
+            }
+        }
     }
 
     // Valida de novo, separa válidas e rejeitadas, manda as válidas ao Python e monta a resposta.
     private UploadResponse registrar(String nome, List<LinhaPlanilha> brutas, int descartadas,
-                                     EnvioValidadasRequest req, Usuario quemLibera) {
+                                     EnvioValidadasRequest req, Usuario quemLibera, Set<Integer> linhasComCodigoEditado) {
         List<ResultadoLinha> resultado = validacao.validar(brutas); // VALIDAÇÃO NO BACK-END.
+        recusarCodigoJaCadastrado(resultado, linhasComCodigoEditado);
         List<Map<String, String>> validas = new ArrayList<>();
         List<LinhaRejeitada> rejeitadas = new ArrayList<>();
         int comAjuste = 0;

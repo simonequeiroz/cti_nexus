@@ -21,7 +21,10 @@ public final class UploadDtos {
             List<AlteracaoEnvio> alteracoes
     ) {}
 
-    /** Uma linha já conferida pelo front (todos os campos como texto). */
+    /**
+     * Uma linha já conferida pelo front (todos os campos como texto).
+     * codigoEditado = o código foi digitado na tela Validação: precisa ser novo, não pode existir no banco.
+     */
     public record LinhaEnvio(
             Integer numeroLinha,
             String codigoCliente,
@@ -34,7 +37,8 @@ public final class UploadDtos {
             String dataContratacao,
             String cidade,
             String uf,
-            String email
+            String email,
+            Boolean codigoEditado
     ) {}
 
     /** Uma correção feita à mão na tela Validação: quem, quando, linha, campo, valor antigo e novo. */

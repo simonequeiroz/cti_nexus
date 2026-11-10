@@ -125,6 +125,10 @@ const rotas = {
   },
   'GET /uploads': () => cargas,
   'GET /clientes': () => clientesGravados,
+  'GET /clientes/codigos': () => {
+    if (!['ADMINISTRADOR', 'ANALISTA'].includes(logado?.papel)) falhar(403, 'Você não tem permissão.')
+    return clientesGravados.map(c => ({ codigo: c.codigo_cliente, nome: c.nome_cliente }))
+  },
   'DELETE /admin/usuarios/:id': (_, id) => {
     const u = buscar(id)
     if (u.situacao !== 'PENDENTE') falhar(409, 'Só pedidos pendentes podem ser recusados.')

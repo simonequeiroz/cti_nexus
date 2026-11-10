@@ -17,6 +17,10 @@
         <p v-else>Nenhuma linha precisa da sua ajuda. Confira os ajustes que o sistema fez sozinho e libere os clientes para o painel.</p>
       </IntroducaoPagina>
 
+      <p v-if="semCadastro" role="status" class="mt-4 text-sm text-orange-dark">
+        Não foi possível consultar os clientes já cadastrados. Um código digitado só será comparado com eles ao liberar.
+      </p>
+
       <CartaoLiberacao v-if="store.quantidadeValidas || store.liberada" class="mt-6" />
 
       <!-- Barra de ações: fica presa no topo enquanto a lista rola. -->
@@ -89,7 +93,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import LayoutSistema from '../components/layout/LayoutSistema.vue'
 import IntroducaoPagina from '../components/layout/IntroducaoPagina.vue'
 import BotaoBase from '../components/ui/BotaoBase.vue'
@@ -112,8 +116,13 @@ const campo = ref('')
 const busca = ref('')
 const limite = ref(PASSO)
 const mensagem = ref('')
+const semCadastro = ref(false) // O servidor não respondeu quais clientes já estão cadastrados.
 
 watch([tipo, campo, busca], () => { limite.value = PASSO }) // Filtro novo volta para o início da lista.
+
+onMounted(async () => { // Busca os códigos já cadastrados, para o código digitado não repetir nenhum.
+  if (store.quantidadeLinhas) semCadastro.value = !(await store.carregarCodigosDoBanco())
+})
 
 // Junta as ocorrências por linha: [{ numeroLinha, problemas: [...] }].
 const linhasComErro = computed(() => {

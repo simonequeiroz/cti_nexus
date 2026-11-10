@@ -113,6 +113,26 @@ describe('regras do dicionário de dados', () => {
     expect(resultado.erros).toEqual(['Linha 3: Código do cliente repetido (já aparece na linha 2)'])
   })
 
+  it('código digitado igual ao de uma linha mais abaixo: o erro fica na linha corrigida', () => {
+    const planilha = [linha({ codigo_cliente: 'CTI009' }), linha({ codigo_cliente: 'CTI009', nome_cliente: 'Outra Empresa' })]
+    const resultado = validarLinhas(planilha, { linhasComCodigoEditado: new Set([2]) })
+    expect(resultado.validos.map(v => v.nome_cliente)).toEqual(['Outra Empresa'])
+    expect(resultado.erros).toEqual(['Linha 2: Código do cliente repetido (já aparece na linha 3)'])
+  })
+
+  it('código digitado que já está no banco é recusado, mesmo que seja o mesmo cliente', () => {
+    const codigosDoBanco = new Map([['CTI001', 'Metalúrgica Horizonte']])
+    const resultado = validarLinhas([linha()], { linhasComCodigoEditado: new Set([2]), codigosDoBanco })
+    expect(resultado.validos).toHaveLength(0)
+    expect(resultado.ocorrencias[0]).toMatchObject({ campo: 'codigo_cliente', tipo: 'Código repetido' })
+    expect(resultado.ocorrencias[0].descricao).toContain('já cadastrado para Metalúrgica Horizonte')
+  })
+
+  it('código que veio na planilha e já está no banco continua valendo (carga nova atualiza o cliente)', () => {
+    const codigosDoBanco = new Map([['CTI001', 'Metalúrgica Horizonte']])
+    expect(validarLinhas([linha()], { codigosDoBanco }).validos).toHaveLength(1)
+  })
+
   it('deixa o e-mail opcional, mas confere o formato quando preenchido', () => {
     expect(problemasDe({ email: '' })).toEqual([])
     expect(problemasDe({ email: 'contato@empresa.com.br' })).toEqual([])

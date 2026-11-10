@@ -40,12 +40,23 @@ const PREENCHIMENTO_OBRIGATORIO = [
   { campo: 'servicos_contratados', mensagem: 'Serviços contratados está vazio' }
 ]
 
-export function validarLinhas(linhas) {
+// opcoes (usadas na tela de correção):
+//   linhasComCodigoEditado: Set com as linhas cujo código foi digitado à mão.
+//   codigosDoBanco: Map código -> nome do cliente já cadastrado.
+export function validarLinhas(linhas, { linhasComCodigoEditado = new Set(), codigosDoBanco = new Map() } = {}) {
   const validos = [] // Linhas aprovadas, já padronizadas.
   const invalidos = [] // Resumo das linhas com problema: { numeroLinha, codigo_cliente, problemas }.
   const ocorrencias = [] // Cada problema separado: linha, código, campo, tipo e descrição.
   const padronizacoes = [] // Valores corrigidos automaticamente: antes, depois e motivo.
   const primeiraLinhaDoCodigo = new Map() // Código do cliente -> linha em que apareceu pela primeira vez.
+
+  // Código que veio na planilha -> primeira linha com ele. O código digitado à mão não pode tomar o lugar de nenhum destes,
+  // mesmo que a linha original esteja mais abaixo: quem fica com o erro é a linha corrigida.
+  const linhaOriginalDoCodigo = new Map()
+  linhas.forEach((linha, indice) => {
+    const codigo = normalizarCodigo(linha.codigo_cliente)
+    if (codigo && !linhasComCodigoEditado.has(indice + 2) && !linhaOriginalDoCodigo.has(codigo)) linhaOriginalDoCodigo.set(codigo, indice + 2)
+  })
 
   linhas.forEach((linha, indice) => {
     const numeroLinha = indice + 2 // Soma 2 porque o Excel começa em 1 e tem cabeçalho.
@@ -114,10 +125,16 @@ export function validarLinhas(linhas) {
     }
 
     // Registro duplicado: o mesmo código já apareceu numa linha anterior (a primeira ocorrência continua valendo).
-    if (tratada.codigo_cliente && primeiraLinhaDoCodigo.has(tratada.codigo_cliente)) {
-      registrarProblema('codigo_cliente', 'Código repetido', `Código do cliente repetido (já aparece na linha ${primeiraLinhaDoCodigo.get(tratada.codigo_cliente)})`)
+    const codigoEditado = linhasComCodigoEditado.has(numeroLinha)
+    const linhaRepetida = (codigoEditado && linhaOriginalDoCodigo.get(tratada.codigo_cliente)) || primeiraLinhaDoCodigo.get(tratada.codigo_cliente)
+    if (tratada.codigo_cliente && linhaRepetida) {
+      registrarProblema('codigo_cliente', 'Código repetido', `Código do cliente repetido (já aparece na linha ${linhaRepetida})`)
     } else if (tratada.codigo_cliente) {
       primeiraLinhaDoCodigo.set(tratada.codigo_cliente, numeroLinha)
+      // Código digitado à mão tem que ser novo. O código que veio na planilha pode existir: é a carga nova atualizando o cliente.
+      if (codigoEditado && codigosDoBanco.has(tratada.codigo_cliente)) {
+        registrarProblema('codigo_cliente', 'Código repetido', `Código do cliente já cadastrado para ${codigosDoBanco.get(tratada.codigo_cliente)} (use um código que ainda não exista)`)
+      }
     }
 
     // 3. Registra o que foi corrigido automaticamente (só quando o valor original existia e mudou).

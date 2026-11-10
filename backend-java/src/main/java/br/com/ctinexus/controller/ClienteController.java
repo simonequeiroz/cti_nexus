@@ -24,4 +24,13 @@ public class ClienteController {
     public List<Map<String, Object>> listar() {
         return consulta.clientesDaUltimaCarga();
     }
+
+    // GET /api/clientes/codigos  -> todos os clientes cadastrados ({ codigo, nome }), para o código digitado na correção não repetir nenhum.
+    // Permissão corrigir_dados (ConfiguracaoSeguranca): o gestor recebe 403.
+    @GetMapping("/codigos")
+    public List<Map<String, String>> codigos() {
+        return consulta.nomePorCodigo().entrySet().stream()
+                .map(cliente -> Map.of("codigo", cliente.getKey(), "nome", cliente.getValue()))
+                .toList();
+    }
 }

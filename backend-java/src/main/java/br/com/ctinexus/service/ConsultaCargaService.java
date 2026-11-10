@@ -91,6 +91,15 @@ public class ConsultaCargaService {
         return clientes;
     }
 
+    /** Todos os clientes cadastrados, de qualquer carga: código -> nome. */
+    public Map<String, String> nomePorCodigo() {
+        Map<String, String> clientes = new LinkedHashMap<>();
+        jdbc.query("SELECT codigo, nome FROM cliente ORDER BY codigo", rs -> {
+            clientes.put(rs.getString(1), rs.getString(2));
+        });
+        return clientes;
+    }
+
     // Uma linha de upload_lote no formato da API (camelCase, data em ISO com fuso).
     private Map<String, Object> lote(Map<String, Object> l) {
         Map<String, Object> saida = new LinkedHashMap<>();

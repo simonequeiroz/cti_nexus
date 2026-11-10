@@ -176,6 +176,56 @@ class UploadFluxoTest {
         api.perform(get("/api/clientes")).andExpect(status().isUnauthorized()); // Sem token: 401.
     }
 
+    @Test
+    @SuppressWarnings("unchecked")
+    void codigoDigitadoQueJaExisteNoBancoEhRecusado() throws Exception {
+        // Lote com id baixo, para não virar a "última carga" do teste do painel.
+        Long admin = jdbc.queryForObject("SELECT id FROM usuario WHERE email = 'admin@ctinexus.com'", Long.class);
+        jdbc.update("INSERT INTO upload_lote (id, arquivo_nome, total_linhas, linhas_validas, linhas_invalidas, aprovado_por) VALUES (50, 'cadastro.xlsx', 2, 2, 0, ?)", admin);
+        jdbc.update("INSERT INTO consultor (id, nome) VALUES (50, 'Rita Dias')");
+        jdbc.update("INSERT INTO segmento (id, nome) VALUES (50, 'Comércio')");
+        jdbc.update("""
+                INSERT INTO cliente (id, codigo, nome, consultor_id, segmento_id, nivel, faturamento_anual, data_contratacao, lote_id)
+                VALUES (50, 'CAD001', 'Cliente Cadastrado', 50, 50, 'A', 10, DATE '2020-01-01', 50),
+                       (51, 'CAD002', 'Cliente Que Atualiza', 50, 50, 'A', 10, DATE '2020-01-01', 50)
+                """);
+        when(python.enviar(any())).thenReturn(Map.of("loteId", 8));
+
+        String envio = """
+                { "arquivoNome": "x.xlsx", "linhas": [
+                  %s, %s, %s
+                ] }
+                """.formatted(linhaEnvio(2, "cad001", true), linhaEnvio(3, "CAD002", false), linhaEnvio(4, "NOVO900", true));
+
+        api.perform(post("/api/uploads/validadas").header("Authorization", "Bearer " + login("analista@ctinexus.com"))
+                        .contentType(MediaType.APPLICATION_JSON).content(envio))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.rejeitadas.length()").value(1))
+                .andExpect(jsonPath("$.rejeitadas[0].linha").value(2))
+                .andExpect(jsonPath("$.rejeitadas[0].motivo").value("Código do cliente já cadastrado para Cliente Cadastrado (use um código que ainda não exista)"));
+
+        ArgumentCaptor<Map<String, Object>> pedido = ArgumentCaptor.forClass(Map.class);
+        verify(python).enviar(pedido.capture());
+        List<Map<String, String>> linhas = (List<Map<String, String>>) pedido.getValue().get("linhas");
+        assertEquals(List.of("CAD002", "NOVO900"), linhas.stream().map(l -> l.get("codigo_cliente")).toList()); // O que veio na planilha pode atualizar.
+    }
+
+    @Test
+    void listaDeCodigosEhSoParaQuemCorrige() throws Exception {
+        api.perform(get("/api/clientes/codigos").header("Authorization", "Bearer " + login("analista@ctinexus.com")))
+                .andExpect(status().isOk());
+        api.perform(get("/api/clientes/codigos").header("Authorization", "Bearer " + login("gestor@ctinexus.com")))
+                .andExpect(status().isForbidden());
+    }
+
+    private static String linhaEnvio(int numero, String codigo, boolean editado) {
+        return """
+                { "numeroLinha": %d, "codigoCliente": "%s", "codigoEditado": %b, "nomeCliente": "Empresa", "consultor": "Ana Souza",
+                  "segmento": "Indústria", "nivelCliente": "A", "faturamentoAnual": "1000", "servicosContratados": "MPLS",
+                  "dataContratacao": "05/03/2024", "cidade": "", "uf": "", "email": "" }
+                """.formatted(numero, codigo, editado);
+    }
+
     private String login(String email) throws Exception {
         String resposta = api.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON)
                         .content("{ \"email\": \"" + email + "\", \"senha\": \"123456\" }"))

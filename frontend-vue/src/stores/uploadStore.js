@@ -1,12 +1,12 @@
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
+import { ref, shallowRef, computed } from 'vue'
 import * as XLSX from 'xlsx'
 import { lerPlanilha, verificarArquivo, ExcelInvalidoError, ColunaObrigatoriaError } from '../utils/leituraPlanilha'
 import { validarLinhas } from '../utils/validacao'
 import { texto, normalizarCodigo } from '../utils/normalizacao'
 import { contarPor } from '../utils/estatistica'
 import { mensagemDeErro } from '../utils/usuarioApi'
-import { enviarClientesValidados, listarClientes, listarCargas } from '../services/uploadService' // Rotas /uploads e /clientes da API.
+import { enviarClientesValidados, listarClientes, listarCargas, listarCodigosCadastrados } from '../services/uploadService' // Rotas /uploads e /clientes da API.
 import { useAutenticacaoStore } from './autenticacaoStore'
 
 export const useUploadStore = defineStore('upload', () => {
@@ -37,6 +37,9 @@ export const useUploadStore = defineStore('upload', () => {
   const enviando = ref(false) // Esperando o back-end gravar a liberação (Java confere de novo e o Python grava no banco).
   const cargaGravada = ref(null) // Última carga gravada no banco, que é o que o painel mostra: { id, arquivoNome, totalLinhas, linhasInvalidas, ... }.
   const carregandoPainel = ref(false) // Buscando no banco os clientes da última carga (Dashboard aberto sem planilha nesta sessão).
+  const codigoOriginal = ref(new Map()) // Linha -> código que ela tinha antes de ser corrigida à mão.
+  const codigosDoBanco = shallowRef(new Map()) // Clientes já cadastrados: código -> nome.
+  const codigosConsultados = ref(false) // A lista acima veio mesmo do servidor?
 
   // ===== GETTERS =====
 
@@ -96,6 +99,7 @@ export const useUploadStore = defineStore('upload', () => {
     edicoesPendentes.value = 0
     duracaoMs.value = 0
     alteracoes.value = []
+    codigoOriginal.value = new Map()
     rodadaCorrecao.value = 0
     dadosLiberados.value = [] // Planilha nova: nada liberado até alguém liberar de novo.
     liberacao.value = null
@@ -133,7 +137,7 @@ export const useUploadStore = defineStore('upload', () => {
   }
 
   function validarDados() { // Aplica as regras de utils/validacao.js e guarda o resultado.
-    const resultado = validarLinhas(dadosBrutos.value)
+    const resultado = validarLinhas(dadosBrutos.value, { linhasComCodigoEditado: linhasComCodigoEditado(), codigosDoBanco: codigosDoBanco.value })
     dadosValidos.value = resultado.validos
     dadosInvalidos.value = resultado.invalidos
     ocorrencias.value = resultado.ocorrencias
@@ -224,9 +228,56 @@ export const useUploadStore = defineStore('upload', () => {
     const linha = dadosBrutos.value[numeroLinha - 2]
     const anterior = linha[campo]
     if (String(anterior ?? '') === String(valor)) return // Nada mudou.
+    if (campo === 'codigo_cliente' && !codigoOriginal.value.has(numeroLinha)) codigoOriginal.value.set(numeroLinha, anterior)
     linha[campo] = valor
     edicoesPendentes.value++
     registrarAlteracao(numeroLinha, linha.codigo_cliente, campo, anterior, valor)
+  }
+
+  function linhasComCodigoEditado() { // Linhas cujo código hoje é diferente do que veio na planilha.
+    const editadas = new Set()
+    for (const [numeroLinha, original] of codigoOriginal.value) {
+      if (normalizarCodigo(dadosBrutos.value[numeroLinha - 2].codigo_cliente) !== normalizarCodigo(original)) editadas.add(numeroLinha)
+    }
+    return editadas
+  }
+
+  // Busca os códigos já cadastrados, para o código digitado à mão não repetir nenhum. Devolve false se o servidor não respondeu.
+  async function carregarCodigosDoBanco() {
+    try {
+      const clientes = await listarCodigosCadastrados()
+      codigosDoBanco.value = new Map(clientes.map(cliente => [cliente.codigo, cliente.nome]))
+      codigosConsultados.value = true
+      if (linhasComCodigoEditado().size) { // A lista pode ter mudado: confere de novo o que foi digitado.
+        validarDados()
+        atualizarHistorico()
+      }
+      return true
+    } catch {
+      codigosConsultados.value = false
+      return false
+    }
+  }
+
+  // Enquanto a pessoa digita: o código está livre? Devolve { livre, mensagem }, ou null se o campo estiver vazio.
+  function situacaoDoCodigo(numeroLinha, valor) {
+    const codigo = normalizarCodigo(valor)
+    if (!codigo) return null
+
+    const indice = dadosBrutos.value.findIndex((linha, i) => i !== numeroLinha - 2 && normalizarCodigo(linha.codigo_cliente) === codigo)
+    if (indice >= 0) {
+      const nome = texto(dadosBrutos.value[indice].nome_cliente)
+      return { livre: false, mensagem: `Este código já está na linha ${indice + 2}${nome ? ` (${nome})` : ''}` }
+    }
+    if (codigosDoBanco.value.has(codigo)) {
+      return { livre: false, mensagem: `Este código já está cadastrado para ${codigosDoBanco.value.get(codigo)}` }
+    }
+    return {
+      livre: true,
+      mensagem: codigosConsultados.value
+        ? 'Código livre: não está em outra linha nem no cadastro'
+        : 'Não está em outra linha. O cadastro será conferido ao liberar'
+    }
   }
 
   function registrarAlteracao(numeroLinha, codigo, campo, anterior, valor) { // Log "quem alterou o quê".
@@ -279,6 +330,15 @@ export const useUploadStore = defineStore('upload', () => {
       mudouDesdeLiberacao.value = false
       const registro = historico.value.find(item => item.id === idHistoricoAtual.value)
       if (registro) registro.liberadoPor = liberacao.value.por
+
+      // O código que acabou de ser gravado agora é desta linha: ao liberar de novo, ela não pode ser acusada de repetir a si mesma.
+      const comErro = new Set(dadosInvalidos.value.map(item => item.numeroLinha))
+      for (const numeroLinha of [...codigoOriginal.value.keys()]) {
+        const codigo = normalizarCodigo(dadosBrutos.value[numeroLinha - 2].codigo_cliente)
+        if (!comErro.has(numeroLinha) && !recusados.has(codigo)) codigoOriginal.value.delete(numeroLinha)
+      }
+      await carregarCodigosDoBanco()
+
       return { ok: true, mensagem: '', rejeitadas: resposta.rejeitadas }
     } catch (erro) {
       return { ok: false, mensagem: mensagemDeErro(erro), rejeitadas: [] } // Ex.: "O serviço de análise está desligado..."
@@ -289,10 +349,12 @@ export const useUploadStore = defineStore('upload', () => {
 
   // Formato do POST /api/uploads/validadas (UploadDtos.java): só as linhas aprovadas, com o número da linha no Excel.
   function montarEnvio() {
-    const linhaDoCodigo = new Map() // Código -> primeira linha da planilha com esse código (a que foi aprovada).
+    const comErro = new Set(dadosInvalidos.value.map(item => item.numeroLinha))
+    const editadas = linhasComCodigoEditado()
+    const linhaDoCodigo = new Map() // Código -> linha aprovada com esse código.
     dadosBrutos.value.forEach((linha, indice) => {
       const codigo = normalizarCodigo(linha.codigo_cliente)
-      if (codigo && !linhaDoCodigo.has(codigo)) linhaDoCodigo.set(codigo, indice + 2)
+      if (codigo && !comErro.has(indice + 2)) linhaDoCodigo.set(codigo, indice + 2)
     })
 
     return {
@@ -301,6 +363,7 @@ export const useUploadStore = defineStore('upload', () => {
       enviadoPorId: enviadoPor.value?.id ?? null, // Quem conferiu a planilha. Quem liberou o servidor descobre pelo token.
       linhas: dadosValidos.value.map(cliente => ({
         numeroLinha: linhaDoCodigo.get(cliente.codigo_cliente) ?? null,
+        codigoEditado: editadas.has(linhaDoCodigo.get(cliente.codigo_cliente)), // O servidor confere no banco se o código digitado é novo.
         codigoCliente: cliente.codigo_cliente,
         nomeCliente: cliente.nome_cliente,
         consultor: cliente.consultor,
@@ -356,10 +419,12 @@ export const useUploadStore = defineStore('upload', () => {
     dadosBrutos, dadosValidos, dadosInvalidos, erros, ocorrencias, padronizacoes,
     statusValidacao, carregando, historico, idHistoricoAtual, edicoesPendentes,
     duracaoMs, alteracoes, dadosLiberados, liberacao, mudouDesdeLiberacao, enviando, cargaGravada, carregandoPainel,
+    codigoOriginal, codigosDoBanco, codigosConsultados,
     quantidadeLinhas, quantidadeValidas, quantidadeInvalidas,
     quantidadeClientes, percentualValido, faturamentoTotal, faturamentoMedio,
     errosPorTipo, errosPorCampo, padronizacoesPorCampo, padronizacoesPorMotivo, falhouLeitura, liberada, quantidadeLiberados,
     registrarArquivo, processarArquivo,
-    limparUpload, limparHistorico, corrigirCampo, revalidar, liberarParaPainel, carregarDoBanco, baixarPlanilhaCorrigida
+    limparUpload, limparHistorico, corrigirCampo, revalidar, liberarParaPainel, carregarDoBanco, baixarPlanilhaCorrigida,
+    carregarCodigosDoBanco, situacaoDoCodigo
   }
 })
