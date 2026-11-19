@@ -34,7 +34,7 @@ O CTI Nexus segue o caminho de um **ETL**:
 | Front-end | Vue 3, Vite, Tailwind CSS v4, Pinia, Chart.js, SheetJS | ✅ Funcional, com 57 testes automatizados |
 | Back-end | Java, Spring Boot, Spring Security + JWT | ✅ Funcional (login, usuários, envio da planilha, consultas do painel) |
 | Banco de dados | PostgreSQL (Neon) | ✅ Funcional (`backend-java/src/main/resources/schema.sql`) |
-| Análise | Python, FastAPI, Pandas | ✅ ETL funcional (limpeza, estatísticas, gravação) · ⏳ gráficos em Matplotlib (`graficos.py`) |
+| Análise | Python, FastAPI, Pandas | ✅ ETL funcional (limpeza, estatísticas, gravação) e boxplot em Matplotlib (`graficos.py`) |
 | Publicação | Vercel (front) e Render (back) | ⏳ Planejado |
 
 ---
@@ -56,7 +56,7 @@ Vue (tela) → store Pinia → service → api.js (axios + JWT) → API Java (Sp
 - `PaginaUpload.vue` → `uploadStore.js` → `leituraPlanilha.js` (lê o Excel) → `validacao.js` (valida e padroniza no navegador).
 - `PaginaValidacao.vue` → correção linha a linha → `uploadStore.js` → `uploadService.js` → `api.js` → `POST /api/uploads/validadas`.
 - `UploadController.java` → `UploadService.java` → `ClienteValidacaoService.java` (valida de novo no back-end; linhas com erro voltam ao front) → `PythonEtlService.java` → `POST /etl` no Python.
-- `analytics-python/api.py` → `limpeza.py` (limpa com Pandas) → `analise.py` (estatísticas por segmento) → `banco.py` → grava lote, clientes, contratos, estatísticas e alterações no **Neon**.
+- `analytics-python/api.py` → `limpeza.py` (limpa com Pandas) → `analise.py` (estatísticas por segmento) → `banco.py` → grava lote, clientes, contratos, estatísticas e alterações no **Neon** → `graficos.py` (boxplot do faturamento por segmento em Matplotlib, salvo em `output/graficos/`).
 - O Java grava só a tabela `usuario`; as tabelas da planilha quem grava é o Python.
 
 **3. Relatório e painel**
