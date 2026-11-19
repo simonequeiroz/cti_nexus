@@ -32,12 +32,36 @@ O CTI Nexus segue o caminho de um **ETL**:
 | Parte | Tecnologia | Situação |
 |---|---|---|
 | Front-end | Vue 3, Vite, Tailwind CSS v4, Pinia, Chart.js, SheetJS | ✅ Funcional, com 57 testes automatizados |
-| Back-end | Java, Spring Boot, Spring Security + JWT | ⏳ Planejado |
-| Banco de dados | PostgreSQL (Neon) | ⏳ Planejado (modelo abaixo) |
-| Análise | Python, Pandas, Matplotlib | ⏳ Planejado |
+| Back-end | Java, Spring Boot, Spring Security + JWT | ✅ Funcional (login, usuários, envio da planilha, consultas do painel) |
+| Banco de dados | PostgreSQL (Neon) | ✅ Funcional (`backend-java/src/main/resources/schema.sql`) |
+| Análise | Python, FastAPI, Pandas | ✅ ETL funcional (limpeza, estatísticas, gravação) · ⏳ gráficos em Matplotlib (`graficos.py`) |
 | Publicação | Vercel (front) e Render (back) | ⏳ Planejado |
 
-Enquanto o back-end não existe, o front funciona sozinho: lê e valida a planilha no navegador e usa usuários de demonstração. Os dados ficam só enquanto a página está aberta.
+---
+
+## 🏗️ Arquitetura e fluxo dos dados
+
+Usuários (atores): **Administrador** (gerencia usuários), **Analista de Operações** (envia, corrige e libera a planilha) e **Gestor** (só vê relatório e painel).
+
+```
+Vue (tela) → store Pinia → service → api.js (axios + JWT) → API Java (Spring Boot) → Python (FastAPI) → PostgreSQL (Neon)
+```
+
+**1. Login e usuários**
+- `PaginaLogin.vue` → `autenticacaoStore.js` → `autenticacaoService.js` → `api.js` → `AutenticacaoController.java` → `AutenticacaoService.java` → `JwtService.java` (gera o token) e `UsuarioRepository.java` → tabela `usuario` no **Neon**.
+- `PaginaUsuarios.vue` → `usuariosStore.js` → `usuariosService.js` → `api.js` → `AdminUsuarioController.java` → `UsuarioService.java` → `UsuarioRepository.java` → **Neon**.
+- Toda chamada passa pelo `JwtFiltroAutenticacao.java`, que confere o token e as permissões do papel (`Papel.java`).
+
+**2. Envio da planilha (ETL)**
+- `PaginaUpload.vue` → `uploadStore.js` → `leituraPlanilha.js` (lê o Excel) → `validacao.js` (valida e padroniza no navegador).
+- `PaginaValidacao.vue` → correção linha a linha → `uploadStore.js` → `uploadService.js` → `api.js` → `POST /api/uploads/validadas`.
+- `UploadController.java` → `UploadService.java` → `ClienteValidacaoService.java` (valida de novo no back-end; linhas com erro voltam ao front) → `PythonEtlService.java` → `POST /etl` no Python.
+- `analytics-python/api.py` → `limpeza.py` (limpa com Pandas) → `analise.py` (estatísticas por segmento) → `banco.py` → grava lote, clientes, contratos, estatísticas e alterações no **Neon**.
+- O Java grava só a tabela `usuario`; as tabelas da planilha quem grava é o Python.
+
+**3. Relatório e painel**
+- `PaginaRelatorio.vue` → `uploadStore.js` (relatório de qualidade da planilha conferida).
+- `PaginaDashboard.vue` → `uploadStore.js` → `uploadService.js` → `api.js` → `GET /api/clientes` e `GET /api/uploads` → `ClienteController.java` / `UploadController.java` → `ConsultaCargaService.java` → lê do **Neon** → gráficos (Chart.js) e insights (`dadosDashboard.js`).
 
 ---
 
@@ -186,55 +210,21 @@ O sistema lida com dados sensíveis de clientes e faturamento, então o acesso �
 
 ---
 
-## 🗄️ Modelo de banco de dados (planejado)
+## 🗄️ Banco de dados (PostgreSQL no Neon)
 
-```sql
-CREATE TABLE papel (
-  id     SERIAL PRIMARY KEY,
-  codigo VARCHAR(30) UNIQUE NOT NULL,      -- administrador, analista, gestor
-  nome   VARCHAR(60) NOT NULL
-);
+Tabelas criadas pelo `backend-java/src/main/resources/schema.sql`:
 
-CREATE TABLE permissao (
-  id        SERIAL PRIMARY KEY,
-  codigo    VARCHAR(40) UNIQUE NOT NULL,   -- enviar_planilha, corrigir_dados...
-  descricao VARCHAR(120) NOT NULL
-);
+| Tabela | Quem grava | Para que serve |
+|---|---|---|
+| `usuario` | Java (`UsuarioRepository`) | Login, papel (administrador, analista, gestor) e situação (pendente, ativo, desativado) |
+| `upload_lote` | Python (`banco.py`) | Cada carga liberada: arquivo, contagens, quem enviou e quem aprovou |
+| `consultor`, `segmento`, `servico` | Python | Listas usadas pelos clientes |
+| `cliente` | Python | Clientes da planilha (código único; carga nova atualiza) |
+| `contrato` | Python | Serviços contratados por cliente |
+| `estatistica_lote` | Python (`analise.py`) | Quantidade, total, média, mediana e desvio padrão por segmento |
+| `alteracao` | Python | Correções feitas à mão na tela Validação (quem alterou o quê) |
 
-CREATE TABLE papel_permissao (
-  papel_id     INT REFERENCES papel(id),
-  permissao_id INT REFERENCES permissao(id),
-  PRIMARY KEY (papel_id, permissao_id)
-);
-
-CREATE TABLE usuario (
-  id         SERIAL PRIMARY KEY,
-  nome       VARCHAR(100) NOT NULL,
-  email      VARCHAR(120) UNIQUE NOT NULL,
-  senha_hash VARCHAR(100) NOT NULL,        -- BCrypt, nunca a senha pura
-  papel_id   INT REFERENCES papel(id),     -- NULL enquanto o pedido de acesso está pendente
-  cargo      VARCHAR(100),                 -- informado no pedido de acesso
-  situacao   VARCHAR(20) NOT NULL DEFAULT 'ativo', -- pendente, ativo, desativado
-  criado_em  TIMESTAMP NOT NULL DEFAULT NOW()
-);
-
--- Trilha de auditoria: quem enviou, quando e o resultado de cada planilha.
-CREATE TABLE importacao (
-  id              SERIAL PRIMARY KEY,
-  nome_arquivo    VARCHAR(255) NOT NULL,
-  tamanho_bytes   INT NOT NULL,
-  enviado_por     INT NOT NULL REFERENCES usuario(id),
-  enviado_em      TIMESTAMP NOT NULL DEFAULT NOW(),
-  total_linhas    INT NOT NULL,
-  linhas_validas  INT NOT NULL,
-  linhas_com_erro INT NOT NULL,
-  status          VARCHAR(30) NOT NULL,
-  aprovado_por    INT REFERENCES usuario(id),
-  aprovado_em     TIMESTAMP
-);
-```
-
-A tabela de clientes segue as colunas do dicionário de dados, ligada à `importacao` de onde veio.
+O Java só **lê** as tabelas da planilha (`ConsultaCargaService`) para o painel.
 
 ---
 
@@ -242,7 +232,7 @@ A tabela de clientes segue as colunas do dicionário de dados, ligada à `import
 
 ```text
 cti_nexus/
-├── frontend-vue/          # Aplicação web (a parte implementada)
+├── frontend-vue/          # Aplicação web Vue 3 (telas, Pinia, axios)
 │   ├── public/            # Planilha modelo e planilha de teste
 │   ├── scripts/           # Gerador das planilhas (npm run planilhas)
 │   └── src/
@@ -254,9 +244,9 @@ cti_nexus/
 │       ├── utils/         # Regras em funções puras: leitura, validação, estatística
 │       ├── constants/     # Listas fixas: regras, permissões, cores
 │       └── composables/   # Menu lateral recolhível
-├── backend-java/          # API Spring Boot (planejado)
-├── analytics-python/      # Limpeza e análise com Pandas (planejado)
-├── database/              # schema.sql (planejado)
+├── backend-java/          # API Spring Boot: JWT, usuários, envio da planilha, consultas (chama o Python)
+├── analytics-python/      # FastAPI: limpeza (Pandas), estatísticas e gravação no Neon
+├── database/              # Aponta para o schema.sql oficial do back-end
 └── landing.html           # Página institucional independente
 ```
 
