@@ -6,7 +6,8 @@ import { validarLinhas } from '../utils/validacao'
 import { texto, normalizarCodigo } from '../utils/normalizacao'
 import { contarPor } from '../utils/estatistica'
 import { mensagemDeErro } from '../utils/usuarioApi'
-import { enviarClientesValidados, listarClientes, listarCargas, listarCodigosCadastrados } from '../services/uploadService' // Rotas /uploads e /clientes da API.
+import { enviarClientesValidados, listarCodigosCadastrados } from '../services/uploadService' // Envio da planilha: POST /uploads/validadas e GET /clientes/codigos.
+import { listarClientes, listarCargas } from '../services/dashboardService' // Painel: GET /clientes e GET /uploads.
 import { useAutenticacaoStore } from './autenticacaoStore'
 
 export const useUploadStore = defineStore('upload', () => {

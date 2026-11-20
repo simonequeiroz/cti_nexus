@@ -61,7 +61,7 @@ Vue (tela) → store Pinia → service → api.js (axios + JWT) → API Java (Sp
 
 **3. Relatório e painel**
 - `PaginaRelatorio.vue` → `uploadStore.js` (relatório de qualidade da planilha conferida).
-- `PaginaDashboard.vue` → `uploadStore.js` → `uploadService.js` → `api.js` → `GET /api/clientes` e `GET /api/uploads` → `ClienteController.java` / `UploadController.java` → `ConsultaCargaService.java` → lê do **Neon** → gráficos (Chart.js) e insights (`dadosDashboard.js`).
+- `PaginaDashboard.vue` → `uploadStore.js` → `dashboardService.js` → `api.js` → `GET /api/clientes` e `GET /api/uploads` → `ClienteController.java` / `UploadController.java` → `ConsultaCargaService.java` → lê do **Neon** → gráficos (Chart.js) e insights (`dadosDashboard.js`).
 
 ---
 
