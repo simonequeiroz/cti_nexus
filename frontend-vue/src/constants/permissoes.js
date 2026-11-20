@@ -1,7 +1,7 @@
 // Níveis de acesso (RBAC): cada papel tem uma lista de permissões.
 // Telas e botões conferem a permissão (ex.: 'corrigir_dados'), nunca o nome do papel: assim dá para mudar um papel sem mexer nas telas.
-// Quando existir o back-end, estas listas viram as tabelas papel, permissao e papel_permissao (database/schema.sql),
-// e o Spring confere a permissão de novo em cada rota — esconder botão no front não protege o dado sozinho.
+// No back-end, as mesmas listas ficam no enum Papel.java (mesmos códigos), e o Spring confere a permissão
+// de novo em cada rota (ConfiguracaoSeguranca.java) — esconder botão no front não protege o dado sozinho.
 
 export const PERMISSOES = {
   enviar_planilha: 'Enviar planilhas',

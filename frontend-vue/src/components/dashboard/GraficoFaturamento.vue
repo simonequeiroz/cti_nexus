@@ -13,14 +13,14 @@
 </template>
 
 <script setup>
+// As faixas vêm prontas do Python (analise.py, regra de Sturges): o componente só desenha.
 import { computed } from 'vue'
 import CartaoPainel from '../ui/CartaoPainel.vue'
 import GraficoBase from './GraficoBase.vue'
-import { histograma } from '../../utils/dadosDashboard'
 
 const props = defineProps({
-  clientes: { type: Array, required: true }
+  faixas: { type: Array, required: true } // [{ rotulo: '0,9–1,6', quantidade }]
 })
 
-const dados = computed(() => histograma(props.clientes.map(c => c.faturamento_anual)).map(f => ({ rotulo: f.rotulo, valor: f.quantidade })))
+const dados = computed(() => props.faixas.map(f => ({ rotulo: f.rotulo, valor: f.quantidade })))
 </script>

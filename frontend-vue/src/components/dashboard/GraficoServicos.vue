@@ -13,15 +13,14 @@
 </template>
 
 <script setup>
+// Os números vêm prontos do Python (analise.py): o componente só desenha.
 import { computed } from 'vue'
 import CartaoPainel from '../ui/CartaoPainel.vue'
 import GraficoBase from './GraficoBase.vue'
-import { contarPor } from '../../utils/estatistica'
-import { listaDeServicos } from '../../utils/dadosDashboard'
 
 const props = defineProps({
-  clientes: { type: Array, required: true }
+  servicos: { type: Array, required: true } // [{ nome, quantidade }]
 })
 
-const dados = computed(() => contarPor(props.clientes.flatMap(listaDeServicos), s => s).map(s => ({ rotulo: s.nome, valor: s.quantidade })))
+const dados = computed(() => props.servicos.map(s => ({ rotulo: s.nome, valor: s.quantidade })))
 </script>

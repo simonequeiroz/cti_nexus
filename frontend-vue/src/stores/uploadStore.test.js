@@ -180,9 +180,21 @@ describe('liberação para o painel', () => {
     expect(store.liberada).toBe(false)
     await store.carregarDoBanco()
     expect(store.liberada).toBe(true)
-    expect(store.dadosLiberados).toHaveLength(5)
+    expect(store.quantidadeLiberados).toBe(5)
     expect(store.liberacao.por.nome).toBe('Ana Lima')
     expect(store.cargaGravada.arquivoNome).toBe('teste-clientes.xlsx')
+  })
+
+  it('o painel vem pronto da API (calculado no Python), com os segmentos para o filtro', async () => {
+    const store = await conferirPlanilhaDeTeste()
+    await store.carregarPainel()
+    expect(store.painel).toBeNull() // Nada liberado ainda.
+
+    await store.liberarParaPainel()
+    await store.carregarPainel()
+    expect(store.painel.quantidade).toBe(5)
+    expect(store.segmentosDoPainel.length).toBeGreaterThan(0)
+    expect(store.erroPainel).toBe('')
   })
 
   it('correções depois da liberação não mudam o painel até liberar de novo', async () => {

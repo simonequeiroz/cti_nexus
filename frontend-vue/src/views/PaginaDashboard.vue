@@ -1,4 +1,10 @@
-<!-- Tela de dashboard: destaques, indicadores, gráficos, estatísticas e insights dos clientes LIBERADOS (não basta estarem aprovados). -->
+<!-- REMOVER ANTES DA ENTREGA ----------------------------------------------------------------------
+     O Dashboard não calcula nada: tudo vem de GET /api/dashboard (store.carregarPainel). Se ficar parado em
+     "Carregando os números do painel…", aperte F12 > Console. "carregarPainel is not a function" = o Vite não
+     percebeu a mudança da store: Ctrl+C no terminal do front e npm run dev de novo (um servidor só, porta 5173).
+     -------------------------------------------------------------------------------------------------- -->
+<!-- Tela de dashboard: destaques, indicadores, gráficos, estatísticas e insights dos clientes LIBERADOS (não basta estarem aprovados).
+     O navegador não calcula nada: tudo vem pronto do Python (analise.py + insights.py), pelo Java (GET /api/dashboard). -->
 <template>
   <LayoutSistema>
     <!-- Sem planilha nesta sessão: busca no banco a última carga liberada (carregarDoBanco). -->
@@ -46,7 +52,13 @@
         <a v-if="auth.pode('aprovar_carga')" href="#/validacao" class="font-semibold underline">Liberar de novo</a>
       </p>
 
-      <p v-if="!clientes.length" class="mt-10 text-center text-regular">Nenhum cliente com esses filtros.</p>
+      <p v-if="store.erroPainel" role="alert" class="mt-10 rounded-lg border border-orange/30 bg-orange/10 px-4 py-3 text-center text-sm text-orange-dark">
+        {{ store.erroPainel }}
+      </p>
+
+      <p v-else-if="!painel" role="status" class="mt-10 text-center text-regular">Carregando os números do painel…</p>
+
+      <p v-else-if="!painel.quantidade" class="mt-10 text-center text-regular">Nenhum cliente com esses filtros.</p>
 
       <template v-else>
         <!-- Entrada do painel: as conclusões mais importantes antes dos gráficos. -->
@@ -58,24 +70,24 @@
         </section>
 
         <div class="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <GraficoSegmento :clientes="clientes" />
-          <GraficoNivel :clientes="clientes" />
+          <GraficoSegmento :segmentos="painel.porSegmento" />
+          <GraficoNivel :niveis="painel.porNivel" :total="painel.quantidade" />
         </div>
 
-        <GraficoContratacoes :clientes="clientes" class="mt-6" />
+        <GraficoContratacoes :meses="painel.contratacoesPorMes" class="mt-6" />
 
         <div class="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
           <ListaInsights v-if="outrasConclusoes.length" titulo="Outras conclusões" :insights="outrasConclusoes" />
           <!-- Sem outras conclusões, os dois gráficos ocupam a linha inteira, lado a lado. -->
           <div :class="outrasConclusoes.length ? 'flex flex-col gap-6' : 'lg:col-span-2 grid grid-cols-1 lg:grid-cols-2 gap-6'">
-            <GraficoServicos :clientes="clientes" />
-            <GraficoDispersao :clientes="clientes" />
+            <GraficoServicos :servicos="painel.servicos" />
+            <GraficoDispersao :pontos="painel.dispersao" />
           </div>
         </div>
 
-        <GraficoFaturamento :clientes="clientes" class="mt-6" />
+        <GraficoFaturamento :faixas="painel.histograma" class="mt-6" />
 
-        <ResumoEstatistico :clientes="clientes" class="mt-6" />
+        <ResumoEstatistico :resumo="painel.resumo" class="mt-6" />
       </template>
 
       <!-- Fim do fluxo: responde "o que faço agora?" em vez de terminar sem saída. -->
@@ -109,7 +121,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import LayoutSistema from '../components/layout/LayoutSistema.vue'
 import IntroducaoPagina from '../components/layout/IntroducaoPagina.vue'
 import GradeEstatisticas from '../components/ui/GradeEstatisticas.vue'
@@ -127,8 +139,6 @@ import DestaquesInsights from '../components/dashboard/DestaquesInsights.vue'
 import BotaoBase from '../components/ui/BotaoBase.vue'
 import { useUploadStore } from '../stores/uploadStore'
 import { useAutenticacaoStore } from '../stores/autenticacaoStore'
-import { soma, media, mediana, desvioPadrao } from '../utils/estatistica'
-import { listaDeServicos, gerarInsights } from '../utils/dadosDashboard'
 import { formatarMoeda, formatarData } from '../utils/formatadores'
 
 const store = useUploadStore()
@@ -138,29 +148,31 @@ const auth = useAutenticacaoStore()
 const segmento = ref('')
 const nivel = ref('')
 
-const segmentos = computed(() => [...new Set(store.dadosLiberados.map(c => c.segmento))].sort())
+const segmentos = computed(() => store.segmentosDoPainel) // Opções do filtro: os segmentos da carga (vêm da API).
 
-// Clientes liberados que passam pelos filtros: todos os gráficos usam esta lista.
-const clientes = computed(() => store.dadosLiberados.filter(c =>
-  (!segmento.value || c.segmento === segmento.value) &&
-  (!nivel.value || c.nivel_cliente === nivel.value)
-))
+// Painel já calculado pelo Python para o filtro escolhido. Trocar o filtro só busca outro resultado pronto.
+const painel = computed(() => store.painel)
 
 const indicadores = computed(() => {
-  const faturamentos = clientes.value.map(c => c.faturamento_anual)
-  const servicos = clientes.value.map(c => listaDeServicos(c).length)
+  const i = painel.value.indicadores
   return [
-    { rotulo: 'Clientes', valor: clientes.value.length },
-    { rotulo: 'Faturamento total', valor: formatarMoeda(soma(faturamentos), true) },
-    { rotulo: 'Faturamento médio', valor: formatarMoeda(media(faturamentos), true) },
-    { rotulo: 'Mediana', valor: formatarMoeda(mediana(faturamentos), true) },
-    { rotulo: 'Desvio padrão', valor: formatarMoeda(desvioPadrao(faturamentos), true) },
-    { rotulo: 'Serviços por cliente', valor: media(servicos).toLocaleString('pt-BR', { maximumFractionDigits: 1 }) }
+    { rotulo: 'Clientes', valor: painel.value.quantidade },
+    { rotulo: 'Faturamento total', valor: formatarMoeda(i.faturamentoTotal, true) },
+    { rotulo: 'Faturamento médio', valor: formatarMoeda(i.faturamentoMedio, true) },
+    { rotulo: 'Mediana', valor: formatarMoeda(i.faturamentoMediana, true) },
+    { rotulo: 'Desvio padrão', valor: formatarMoeda(i.desvioPadrao, true) },
+    { rotulo: 'Serviços por cliente', valor: i.servicosPorCliente.toLocaleString('pt-BR', { maximumFractionDigits: 1 }) }
   ]
 })
 
-// Abriu o painel sem planilha nesta sessão (ex.: o gestor no dia seguinte): mostra a última carga gravada no banco.
-onMounted(() => store.carregarDoBanco())
+// Ao abrir: sem planilha nesta sessão (ex.: o gestor no dia seguinte), descobre a última carga gravada no banco;
+// depois busca o painel calculado no Python.
+onMounted(async () => {
+  await store.carregarDoBanco()
+  if (store.liberada) store.carregarPainel(segmento.value, nivel.value)
+})
+
+watch([segmento, nivel], ([s, n]) => store.carregarPainel(s, n)) // Filtro mudou: busca o resultado pronto desse filtro.
 
 const nomeDaPlanilha = computed(() => store.nomeArquivo || store.cargaGravada?.arquivoNome || '')
 
@@ -169,9 +181,7 @@ const foraDoPainel = computed(() => store.quantidadeLinhas
   ? store.quantidadeLinhas - store.quantidadeLiberados
   : (store.cargaGravada?.linhasInvalidas ?? 0))
 
-// Insights da mais para a menos importante: os 3 primeiros vão para o topo, o resto fica na lista (sem repetir).
-const ORDEM_DA_PRIORIDADE = { Alta: 0, Média: 1, Baixa: 2 }
-const insights = computed(() => [...gerarInsights(clientes.value)].sort((a, b) => ORDEM_DA_PRIORIDADE[a.prioridade] - ORDEM_DA_PRIORIDADE[b.prioridade]))
-const destaques = computed(() => insights.value.slice(0, 3))
-const outrasConclusoes = computed(() => insights.value.slice(3))
+// Insights já vêm do Python em ordem de importância: os 3 primeiros vão para o topo, o resto fica na lista (sem repetir).
+const destaques = computed(() => painel.value?.insights?.slice(0, 3) ?? [])
+const outrasConclusoes = computed(() => painel.value?.insights?.slice(3) ?? [])
 </script>

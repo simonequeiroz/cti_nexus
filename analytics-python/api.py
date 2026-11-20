@@ -2,11 +2,11 @@
 
 Caminho de um envio (aula "Telas do Backend"):
     Front -> UploadController (Java) -> UploadService -> ClienteValidacaoService -> PythonEtlService -> POST /etl (aqui)
+    -> main.py (pipeline: limpeza, análise, insights e gravação no Neon)
 
 Ligar (dentro da pasta analytics-python):   python -m uvicorn api:app --port 8000
 Teste rápido:                                http://localhost:8000/health  ->  {"status": "ok"}
 """
-import logging
 import os
 import secrets
 
@@ -16,12 +16,8 @@ from pydantic import BaseModel
 
 load_dotenv()  # Lê o arquivo .env desta pasta (DATABASE_URL e ETL_CHAVE). Ele não vai para o GitHub.
 
-from analise import estatisticas_por_segmento  # noqa: E402  (depois do load_dotenv de propósito)
-from banco import gravar_lote                  # noqa: E402
-from graficos import gerar_boxplot_faturamento  # noqa: E402
-from limpeza import preparar_clientes          # noqa: E402
+from main import processar_carga  # noqa: E402  (depois do load_dotenv de propósito)
 
-log = logging.getLogger("uvicorn.error")
 ETL_CHAVE = os.getenv("ETL_CHAVE", "")  # Mesma chave do backend-java/.env: só o nosso Java consegue gravar.
 
 
@@ -72,26 +68,10 @@ def saude():
 
 @app.post("/etl")
 def etl(pedido: PedidoEtl, x_etl_key: str | None = Header(default=None)):
-    """Limpa (Pandas), calcula as estatísticas e grava a carga no banco. Responde 200 com o id do lote."""
+    """Recebe a carga do Java, confere a chave e entrega para o pipeline (main.py). Responde 200 com o id do lote."""
     if ETL_CHAVE and not secrets.compare_digest(x_etl_key or "", ETL_CHAVE):
         raise HTTPException(status_code=401, detail="Chave do ETL inválida.")
     if not pedido.linhas:
         raise HTTPException(status_code=400, detail="Nenhuma linha para gravar.")
 
-    clientes = preparar_clientes([linha.model_dump() for linha in pedido.linhas])  # T: limpeza
-    estatisticas = estatisticas_por_segmento(clientes)                             # Ciência de dados
-    lote_id = gravar_lote(pedido, clientes, estatisticas)                          # L: gravação no Neon
-
-    # Gráfico da Ciência de Dados (Matplotlib). Se falhar, a carga já está gravada: só avisa no log.
-    try:
-        grafico = gerar_boxplot_faturamento(clientes).name
-    except Exception:  # noqa: BLE001
-        log.exception("Não foi possível gerar o boxplot do lote %s", lote_id)
-        grafico = None
-
-    return {
-        "loteId": lote_id,
-        "clientesGravados": len(clientes),
-        "segmentos": len(estatisticas) - 1,  # Sem contar a linha "Todos".
-        "grafico": grafico,                  # Ex.: "boxplot_faturamento_segmento.png" (pasta output/graficos)
-    }
+    return processar_carga(pedido)

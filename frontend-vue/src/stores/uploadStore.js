@@ -7,7 +7,7 @@ import { texto, normalizarCodigo } from '../utils/normalizacao'
 import { contarPor } from '../utils/estatistica'
 import { mensagemDeErro } from '../utils/usuarioApi'
 import { enviarClientesValidados, listarCodigosCadastrados } from '../services/uploadService' // Envio da planilha: POST /uploads/validadas e GET /clientes/codigos.
-import { listarClientes, listarCargas } from '../services/dashboardService' // Painel: GET /clientes e GET /uploads.
+import { buscarPainel, listarCargas } from '../services/dashboardService' // Painel: GET /dashboard (calculado no Python) e GET /uploads.
 import { useAutenticacaoStore } from './autenticacaoStore'
 
 export const useUploadStore = defineStore('upload', () => {
@@ -37,7 +37,10 @@ export const useUploadStore = defineStore('upload', () => {
   const mudouDesdeLiberacao = ref(false) // Houve correções depois da liberação (o painel mostra a versão antiga).
   const enviando = ref(false) // Esperando o back-end gravar a liberação (Java confere de novo e o Python grava no banco).
   const cargaGravada = ref(null) // Última carga gravada no banco, que é o que o painel mostra: { id, arquivoNome, totalLinhas, linhasInvalidas, ... }.
-  const carregandoPainel = ref(false) // Buscando no banco os clientes da última carga (Dashboard aberto sem planilha nesta sessão).
+  const carregandoPainel = ref(false) // Buscando no banco a última carga (Dashboard aberto sem planilha nesta sessão).
+  const painel = ref(null) // Painel calculado pelo Python para o filtro escolhido (GET /api/dashboard). O navegador só desenha.
+  const segmentosDoPainel = ref([]) // Opções do filtro de segmento (vêm da API).
+  const erroPainel = ref('') // Mensagem quando o painel não pôde ser buscado.
   const codigoOriginal = ref(new Map()) // Linha -> código que ela tinha antes de ser corrigida à mão.
   const codigosDoBanco = shallowRef(new Map()) // Clientes já cadastrados: código -> nome.
   const codigosConsultados = ref(false) // A lista acima veio mesmo do servidor?
@@ -83,7 +86,7 @@ export const useUploadStore = defineStore('upload', () => {
 
   const liberada = computed(() => liberacao.value !== null) // Os clientes aprovados já podem aparecer no painel.
 
-  const quantidadeLiberados = computed(() => dadosLiberados.value.length)
+  const quantidadeLiberados = computed(() => liberacao.value?.quantidade ?? 0) // Na sessão ou na última carga do banco.
 
   // O arquivo foi recusado (formato/tamanho) ou não pôde ser lido (colunas faltando, aba vazia).
   const falhouLeitura = computed(() => ['Arquivo recusado', 'Erro na leitura'].includes(statusValidacao.value))
@@ -390,22 +393,36 @@ export const useUploadStore = defineStore('upload', () => {
   }
 
   // Dashboard aberto sem planilha nesta sessão (ex.: o gestor entrando no dia seguinte):
-  // busca no banco a última carga liberada (GET /api/uploads e GET /api/clientes).
+  // busca no banco qual foi a última carga liberada (GET /api/uploads), para o cabeçalho do painel.
   async function carregarDoBanco() {
     if (dadosBrutos.value.length || liberada.value) return // Há planilha aberta nesta sessão: o painel segue a sessão.
 
     carregandoPainel.value = true
     try {
-      const [cargas, clientes] = await Promise.all([listarCargas(), listarClientes()])
-      const ultima = cargas[0]
-      if (!ultima || !clientes.length) return // Nada gravado ainda.
-      dadosLiberados.value = clientes
-      liberacao.value = { por: ultima.aprovadoPor, em: new Date(ultima.criadoEm), quantidade: clientes.length }
+      const [ultima] = await listarCargas()
+      if (!ultima) return // Nada gravado ainda.
+      liberacao.value = { por: ultima.aprovadoPor, em: new Date(ultima.criadoEm), quantidade: ultima.linhasValidas }
       cargaGravada.value = ultima
     } catch {
       // Sem resposta do servidor: o painel mostra o aviso de "nenhum dado".
     } finally {
       carregandoPainel.value = false
+    }
+  }
+
+  // Números, gráficos e insights do painel, já calculados pelo Python, para o filtro escolhido ('' = todos).
+  async function carregarPainel(segmento = '', nivel = '') {
+    erroPainel.value = ''
+    try {
+      const resposta = await buscarPainel(segmento, nivel)
+      painel.value = resposta.painel
+      segmentosDoPainel.value = resposta.segmentos ?? []
+      if (resposta.loteId && !resposta.painel) {
+        erroPainel.value = 'Esta carga foi gravada antes de o painel ser calculado no servidor. Libere a planilha de novo para ver os gráficos.'
+      }
+    } catch (erro) {
+      painel.value = null
+      erroPainel.value = mensagemDeErro(erro)
     }
   }
 
@@ -419,13 +436,13 @@ export const useUploadStore = defineStore('upload', () => {
     arquivo, nomeArquivo, dataUpload, enviadoPor, tamanhoArquivo,
     dadosBrutos, dadosValidos, dadosInvalidos, erros, ocorrencias, padronizacoes,
     statusValidacao, carregando, historico, idHistoricoAtual, edicoesPendentes,
-    duracaoMs, alteracoes, dadosLiberados, liberacao, mudouDesdeLiberacao, enviando, cargaGravada, carregandoPainel,
+    duracaoMs, alteracoes, dadosLiberados, liberacao, mudouDesdeLiberacao, enviando, cargaGravada, carregandoPainel, painel, segmentosDoPainel, erroPainel,
     codigoOriginal, codigosDoBanco, codigosConsultados,
     quantidadeLinhas, quantidadeValidas, quantidadeInvalidas,
     quantidadeClientes, percentualValido, faturamentoTotal, faturamentoMedio,
     errosPorTipo, errosPorCampo, padronizacoesPorCampo, padronizacoesPorMotivo, falhouLeitura, liberada, quantidadeLiberados,
     registrarArquivo, processarArquivo,
-    limparUpload, limparHistorico, corrigirCampo, revalidar, liberarParaPainel, carregarDoBanco, baixarPlanilhaCorrigida,
+    limparUpload, limparHistorico, corrigirCampo, revalidar, liberarParaPainel, carregarDoBanco, carregarPainel, baixarPlanilhaCorrigida,
     carregarCodigosDoBanco, situacaoDoCodigo
   }
 })

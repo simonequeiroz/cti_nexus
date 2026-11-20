@@ -25,7 +25,7 @@
           <span class="w-3 h-3 shrink-0 rounded-full" :style="{ backgroundColor: item.cor }" aria-hidden="true"></span>
           <span class="font-medium whitespace-nowrap">{{ item.rotulo }}</span>
           <span class="ml-auto pl-4 font-mono text-sm text-regular">{{ item.valor }}</span>
-          <span class="w-12 text-right font-display font-bold">{{ percentual(item.valor) }}%</span>
+          <span class="w-12 text-right font-display font-bold">{{ item.percentual }}%</span>
         </li>
       </ul>
     </div>
@@ -33,29 +33,25 @@
 </template>
 
 <script setup>
+// Os números vêm prontos do Python (analise.py): o componente só desenha.
 import { computed } from 'vue'
 import CartaoPainel from '../ui/CartaoPainel.vue'
 import GraficoBase from './GraficoBase.vue'
 import { CORES_NIVEL } from '../../constants/cores'
-import { NIVEIS_VALIDOS } from '../../constants/validacao'
 
 const props = defineProps({
-  clientes: { type: Array, required: true }
+  niveis: { type: Array, required: true }, // [{ nivel, quantidade, percentual }]
+  total: { type: Number, required: true }
 })
 
-const total = computed(() => props.clientes.length)
-
-const dados = computed(() => NIVEIS_VALIDOS.map(nivel => ({
-  rotulo: `Nível ${nivel}`,
-  valor: props.clientes.filter(c => c.nivel_cliente === nivel).length,
-  cor: CORES_NIVEL[nivel]
+const dados = computed(() => props.niveis.map(n => ({
+  rotulo: `Nível ${n.nivel}`,
+  valor: n.quantidade,
+  percentual: n.percentual,
+  cor: CORES_NIVEL[n.nivel]
 })))
 
-function percentual(valor) {
-  return total.value ? Math.round((valor / total.value) * 100) : 0
-}
-
-function comPercentual(valor) { // Tooltip. Ex.: "12 (22%)".
-  return `${valor} (${percentual(valor)}%)`
+function comPercentual(valor) { // Tooltip. Ex.: "12 (22%)". Mesma quantidade = mesma porcentagem (o total é um só).
+  return `${valor} (${dados.value.find(d => d.valor === valor)?.percentual ?? 0}%)`
 }
 </script>

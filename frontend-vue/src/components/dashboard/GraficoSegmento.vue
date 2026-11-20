@@ -15,20 +15,19 @@
 </template>
 
 <script setup>
+// Os números vêm prontos do Python (analise.py): o componente só desenha.
 import { computed } from 'vue'
 import CartaoPainel from '../ui/CartaoPainel.vue'
 import GraficoBase from './GraficoBase.vue'
-import { contarPor } from '../../utils/estatistica'
 import { corDoSegmento } from '../../constants/cores'
 
 const props = defineProps({
-  clientes: { type: Array, required: true }
+  segmentos: { type: Array, required: true } // [{ nome, quantidade, percentual }]
 })
 
-const dados = computed(() => contarPor(props.clientes, c => c.segmento).map(s => ({ rotulo: s.nome, valor: s.quantidade })))
+const dados = computed(() => props.segmentos.map(s => ({ rotulo: s.nome, valor: s.quantidade })))
 
-function comPercentual(valor) { // Ex.: "7 (35%)".
-  const total = props.clientes.length
-  return total ? `${valor} (${Math.round((valor / total) * 100)}%)` : String(valor)
+function comPercentual(valor) { // Ex.: "7 (35%)". Mesma quantidade = mesma porcentagem (o total é um só).
+  return `${valor} (${props.segmentos.find(s => s.quantidade === valor)?.percentual ?? 0}%)`
 }
 </script>

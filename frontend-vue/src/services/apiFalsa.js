@@ -125,6 +125,12 @@ const rotas = {
   },
   'GET /uploads': () => cargas,
   'GET /clientes': () => clientesGravados,
+  // Imita o DashboardController.java. Aqui não há Python: o "painel" falso só traz a quantidade de clientes da carga.
+  'GET /dashboard': () => ({
+    loteId: cargas[0]?.id ?? null,
+    segmentos: [...new Set(clientesGravados.map(c => c.segmento))].sort(),
+    painel: cargas.length ? { quantidade: clientesGravados.length } : null
+  }),
   'GET /clientes/codigos': () => {
     if (!['ADMINISTRADOR', 'ANALISTA'].includes(logado?.papel)) falhar(403, 'Você não tem permissão.')
     return clientesGravados.map(c => ({ codigo: c.codigo_cliente, nome: c.nome_cliente }))

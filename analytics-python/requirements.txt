@@ -4,4 +4,3 @@ uvicorn==0.34.3            # Servidor que liga a API:  python -m uvicorn api:app
 pandas==2.3.0              # Tabelas de dados (DataFrame): limpeza e estatísticas
 psycopg[binary]==3.2.9     # Conexão com o PostgreSQL (Neon)
 python-dotenv==1.1.0       # Lê o arquivo .env (DATABASE_URL e ETL_CHAVE)
-matplotlib==3.10.3         # Gráficos (graficos.py: boxplot do faturamento por segmento)

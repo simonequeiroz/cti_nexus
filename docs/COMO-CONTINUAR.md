@@ -1,11 +1,11 @@
 # CTI Nexus — como continuar em outra máquina
 
 Diário do que foi feito e passo a passo para montar e ligar o sistema em qualquer computador.
-Última atualização: **09/11/2026**.
+Última atualização: **19/11/2026**.
 
 > **Para o Claude Code na outra máquina:** comece pedindo
-> *"leia o CLAUDE.md e o docs/COMO-CONTINUAR.md e vamos continuar o CTI Nexus"*.
-> A memória do Claude fica só no computador onde ele rodou; o que viaja com o projeto são estes dois arquivos.
+> *"leia o README.md e o docs/COMO-CONTINUAR.md e vamos continuar o CTI Nexus"*.
+> A memória do Claude fica só no computador onde ele rodou. O `CLAUDE.md` (anotações do assistente) não vai mais para o GitHub: se precisar dele em outra máquina, copie o arquivo à mão.
 
 ---
 
@@ -15,7 +15,7 @@ Diário do que foi feito e passo a passo para montar e ligar o sistema em qualqu
 - O **back-end** (Spring Boot + JWT) está feito e **ligado ao front** no login, no pedido de acesso, na tela Usuários e no "Esqueci minha senha".
 - O **banco** é o PostgreSQL no **Neon** e já tem a tabela `usuario`.
 - **Planilha no banco (29/10):** ao clicar em **Liberar para o painel**, as linhas aprovadas vão para o Java, que confere de novo e manda para o **Python**, que grava no Neon. O painel lê a última carga do banco.
-- **Ainda falta:** os gráficos em Python (com o boxplot obrigatório) e publicar (Render e Vercel).
+- **Ainda falta:** publicar (Render e Vercel).
 
 ## 2. O que foi feito em 22/10/2026
 
@@ -219,7 +219,7 @@ cd frontend-vue ; npm test      # 84 testes do front (usa services/apiFalsa.js, 
 ## 8. Próximos passos
 
 1. ~~Planilha no back-end~~ ✅ (29/10). ~~Validação com DTO, `@Valid` e `POST /api/clientes/validar`~~ ✅ (05/11).
-2. **Gráficos em Python** (`analytics-python/graficos.py`): Matplotlib com o **boxplot** de faturamento por segmento, que o plano de ensino exige, e um teste estatístico (Shapiro-Wilk ou Qui-quadrado).
+2. Gráficos analíticos em Python (Matplotlib, `graficos.py`): removidos a pedido da professora (19/11); os gráficos ficam no Dashboard, em Chart.js. ~~Painel calculado no Python~~ ✅ (19/11: `analise.py` + `insights.py` → `painel_lote` → `GET /api/dashboard`). Falta o **teste estatístico** (Shapiro-Wilk ou Qui-quadrado).
 3. **Publicar:** back-end no **Render** e front na **Vercel**.
    - No Render, defina as mesmas variáveis do `.env`, mais `ADMIN_SENHA` forte e `CORS_ORIGENS` com o endereço da Vercel.
    - O Python também vai para o Render, como outro serviço. O `ETL_URL` do back-end passa a ser o endereço dele + `/etl`.

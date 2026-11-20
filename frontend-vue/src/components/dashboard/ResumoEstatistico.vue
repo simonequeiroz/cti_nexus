@@ -44,16 +44,16 @@
 </template>
 
 <script setup>
+// Média, mediana e desvio padrão vêm prontos do Python (analise.py): o componente só mostra.
 import { ref, computed } from 'vue'
 import CartaoPainel from '../ui/CartaoPainel.vue'
 import TabelaDados from '../ui/TabelaDados.vue'
 import GraficoBase from './GraficoBase.vue'
-import { agruparPor, resumoEstatistico } from '../../utils/estatistica'
 import { formatarMoeda } from '../../utils/formatadores'
 import { corDoSegmento, CORES_NIVEL } from '../../constants/cores'
 
 const props = defineProps({
-  clientes: { type: Array, required: true }
+  resumo: { type: Object, required: true } // { segmento: [...], nivel: [...], total: {...} }, cada grupo com quantidade, media, mediana, desvioPadrao
 })
 
 const OPCOES = [
@@ -73,16 +73,14 @@ const agrupamento = ref('segmento') // Estado local: por qual campo agrupar.
 
 const linhas = computed(() => {
   const porNivel = agrupamento.value === 'nivel_cliente'
-  return Object.entries(agruparPor(props.clientes, c => c[agrupamento.value]))
-    .map(([nome, grupo]) => ({
-      nome: porNivel ? `Nível ${nome}` : nome,
-      cor: porNivel ? CORES_NIVEL[nome] : corDoSegmento(nome), // Mesma cor do grupo nos gráficos.
-      ...resumoEstatistico(grupo.map(c => c.faturamento_anual))
-    }))
-    .sort((a, b) => (porNivel ? a.nome.localeCompare(b.nome) : b.media - a.media))
+  return (porNivel ? props.resumo.nivel : props.resumo.segmento).map(grupo => ({
+    ...grupo,
+    nome: porNivel ? `Nível ${grupo.nome}` : grupo.nome,
+    cor: porNivel ? CORES_NIVEL[grupo.nome] : corDoSegmento(grupo.nome) // Mesma cor do grupo nos gráficos.
+  }))
 })
 
-const total = computed(() => ({ nome: 'Carteira toda', cor: '#707070', ...resumoEstatistico(props.clientes.map(c => c.faturamento_anual)) }))
+const total = computed(() => ({ ...props.resumo.total, nome: 'Carteira toda', cor: '#707070' }))
 
 const dados = computed(() => linhas.value.map(l => ({ rotulo: l.nome, valor: l.media })))
 </script>

@@ -1,8 +1,9 @@
 """Gravação no PostgreSQL (Neon): o "L" do ETL.
 
-Tudo numa transação só: ou grava a carga inteira (lote, clientes, contratos, estatísticas e alterações),
+Tudo numa transação só: ou grava a carga inteira (lote, clientes, contratos, estatísticas, painel e alterações),
 ou não grava nada. As tabelas são criadas pelo Spring (backend-java/src/main/resources/schema.sql).
 """
+import json
 import math
 import os
 
@@ -15,7 +16,7 @@ def conectar() -> psycopg.Connection:
     return psycopg.connect(os.environ["DATABASE_URL"])
 
 
-def gravar_lote(pedido, clientes: pd.DataFrame, estatisticas: pd.DataFrame) -> int:
+def gravar_lote(pedido, clientes: pd.DataFrame, estatisticas: pd.DataFrame, paineis: dict) -> int:
     """Grava a carga e devolve o id do lote criado."""
     # "with" = se der qualquer erro lá dentro, desfaz tudo (rollback); se der certo, confirma (commit).
     with conectar() as conexao, conexao.cursor() as cursor:
@@ -76,7 +77,16 @@ def gravar_lote(pedido, clientes: pd.DataFrame, estatisticas: pd.DataFrame) -> i
             ],
         )
 
-        # 6) Alterações feitas à mão na tela Validação (quem corrigiu o quê).
+        # 6) Painel do Dashboard já calculado (analise.montar_paineis): um JSON por filtro (segmento x nível; "" = todos).
+        cursor.executemany(
+            "INSERT INTO painel_lote (lote_id, segmento, nivel, dados) VALUES (%s, %s, %s, %s)",
+            [
+                (lote_id, segmento, nivel, json.dumps(painel, ensure_ascii=False))
+                for (segmento, nivel), painel in paineis.items()
+            ],
+        )
+
+        # 7) Alterações feitas à mão na tela Validação (quem corrigiu o quê).
         cursor.executemany(
             """INSERT INTO alteracao (lote_id, usuario_id, linha, codigo_cliente, campo, valor_antigo, valor_novo, alterado_em)
                VALUES (%s, %s, %s, %s, %s, %s, %s, COALESCE(%s::timestamptz, now()))""",

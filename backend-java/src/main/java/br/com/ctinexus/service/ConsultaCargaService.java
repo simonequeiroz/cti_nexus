@@ -1,5 +1,6 @@
 package br.com.ctinexus.service;
 
+import br.com.ctinexus.dto.PainelResponse;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
@@ -89,6 +90,28 @@ public class ConsultaCargaService {
             clientes.add(c);
         }
         return clientes;
+    }
+
+    /**
+     * Painel do Dashboard da última carga, já calculado pelo Python (tabela painel_lote), no filtro pedido.
+     * segmento e nível vazios = todos. Filtro sem nenhum cliente: { "quantidade": 0 }.
+     */
+    public PainelResponse painelDaUltimaCarga(String segmento, String nivel) {
+        Long lote = jdbc.queryForObject("SELECT MAX(id) FROM upload_lote", Long.class);
+        if (lote == null) return new PainelResponse(null, List.of(), null); // Nada gravado ainda.
+
+        List<String> segmentos = jdbc.queryForList(
+                "SELECT DISTINCT segmento FROM painel_lote WHERE lote_id = ? AND segmento <> '' ORDER BY segmento",
+                String.class, lote);
+        List<String> dados = jdbc.queryForList(
+                "SELECT dados FROM painel_lote WHERE lote_id = ? AND segmento = ? AND nivel = ?",
+                String.class, lote, segmento, nivel);
+
+        String painel;
+        if (!dados.isEmpty()) painel = dados.get(0);
+        else if (segmentos.isEmpty()) painel = null;      // Carga antiga, gravada antes do painel ser calculado no Python.
+        else painel = "{\"quantidade\":0}";             // Nenhum cliente com esse filtro.
+        return new PainelResponse(lote, segmentos, painel);
     }
 
     /** Todos os clientes cadastrados, de qualquer carga: código -> nome. */

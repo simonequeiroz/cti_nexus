@@ -13,14 +13,14 @@
 </template>
 
 <script setup>
+// Os números vêm prontos do Python (analise.py): o componente só desenha.
 import { computed } from 'vue'
 import CartaoPainel from '../ui/CartaoPainel.vue'
 import GraficoBase from './GraficoBase.vue'
-import { contratacoesPorMes } from '../../utils/dadosDashboard'
 
 const props = defineProps({
-  clientes: { type: Array, required: true }
+  meses: { type: Array, required: true } // [{ rotulo: 'jan/24', quantidade }]
 })
 
-const dados = computed(() => contratacoesPorMes(props.clientes).map(m => ({ rotulo: m.rotulo, valor: m.quantidade })))
+const dados = computed(() => props.meses.map(m => ({ rotulo: m.rotulo, valor: m.quantidade })))
 </script>

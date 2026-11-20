@@ -19,22 +19,22 @@
 </template>
 
 <script setup>
+// Os pontos vêm prontos do Python (analise.py): o componente só desenha.
 import { computed } from 'vue'
 import CartaoPainel from '../ui/CartaoPainel.vue'
 import GraficoBase from './GraficoBase.vue'
-import { listaDeServicos } from '../../utils/dadosDashboard'
 import { formatarMoeda } from '../../utils/formatadores'
 import { corDoSegmento } from '../../constants/cores'
 
 const props = defineProps({
-  clientes: { type: Array, required: true }
+  pontos: { type: Array, required: true } // [{ rotulo, servicos, faturamento, segmento }]
 })
 
-const dados = computed(() => props.clientes.map(c => ({
-  rotulo: c.nome_cliente,
-  x: listaDeServicos(c).length,
-  y: c.faturamento_anual,
-  grupo: c.segmento // Cada ponto na cor do seu segmento.
+const dados = computed(() => props.pontos.map(p => ({
+  rotulo: p.rotulo,
+  x: p.servicos,
+  y: p.faturamento,
+  grupo: p.segmento // Cada ponto na cor do seu segmento.
 })))
 
 function formatarServicos(valor) {

@@ -21,9 +21,9 @@ O CTI Nexus segue o caminho de um **ETL**:
 
 | Etapa | O que faz | Situação |
 |---|---|---|
-| **E — Extrair** | Lê a planilha (.xlsx, .xls ou .csv) | ✅ Pronto (no navegador) |
-| **T — Transformar** | Padroniza, valida e permite corrigir linha a linha | ✅ Pronto (no navegador) |
-| **L — Carregar** | Libera os dados aprovados para o painel e grava no banco | 🟡 A liberação já existe no front; falta gravar no banco |
+| **E — Extrair** | Lê a planilha (.xlsx, .xls ou .csv) | ✅ No navegador (Vue) |
+| **T — Transformar** | Padroniza, valida e permite corrigir linha a linha; o Java confere de novo e o Python limpa com Pandas | ✅ Vue + Java + Python |
+| **L — Carregar** | Grava os clientes aprovados, as estatísticas e o painel calculado no PostgreSQL (Neon) | ✅ Python |
 
 ---
 
@@ -31,10 +31,10 @@ O CTI Nexus segue o caminho de um **ETL**:
 
 | Parte | Tecnologia | Situação |
 |---|---|---|
-| Front-end | Vue 3, Vite, Tailwind CSS v4, Pinia, Chart.js, SheetJS | ✅ Funcional, com 57 testes automatizados |
-| Back-end | Java, Spring Boot, Spring Security + JWT | ✅ Funcional (login, usuários, envio da planilha, consultas do painel) |
+| Front-end | Vue 3, Vite, Tailwind CSS v4, Pinia, Chart.js, SheetJS | ✅ Funcional, com 83 testes automatizados |
+| Back-end | Java, Spring Boot, Spring Security + JWT | ✅ Funcional (login, usuários, envio da planilha, consultas do painel), com 26 testes |
 | Banco de dados | PostgreSQL (Neon) | ✅ Funcional (`backend-java/src/main/resources/schema.sql`) |
-| Análise | Python, FastAPI, Pandas | ✅ ETL funcional (limpeza, estatísticas, gravação) e boxplot em Matplotlib (`graficos.py`) |
+| Análise | Python, FastAPI, Pandas | ✅ Pipeline (`main.py`): limpeza, cálculo de todo o painel, insights e gravação, com 10 testes |
 | Publicação | Vercel (front) e Render (back) | ⏳ Planejado |
 
 ---
@@ -56,43 +56,53 @@ Vue (tela) → store Pinia → service → api.js (axios + JWT) → API Java (Sp
 - `PaginaUpload.vue` → `uploadStore.js` → `leituraPlanilha.js` (lê o Excel) → `validacao.js` (valida e padroniza no navegador).
 - `PaginaValidacao.vue` → correção linha a linha → `uploadStore.js` → `uploadService.js` → `api.js` → `POST /api/uploads/validadas`.
 - `UploadController.java` → `UploadService.java` → `ClienteValidacaoService.java` (valida de novo no back-end; linhas com erro voltam ao front) → `PythonEtlService.java` → `POST /etl` no Python.
-- `analytics-python/api.py` → `limpeza.py` (limpa com Pandas) → `analise.py` (estatísticas por segmento) → `banco.py` → grava lote, clientes, contratos, estatísticas e alterações no **Neon** → `graficos.py` (boxplot do faturamento por segmento em Matplotlib, salvo em `output/graficos/`).
+- `analytics-python/api.py` (recebe o pedido e confere a chave) → `main.py` (pipeline) → `limpeza.py` (limpa com Pandas) → `analise.py` (estatísticas por segmento e **todos os números do painel**, para cada filtro) + `insights.py` (conclusões em texto) → `banco.py` → grava lote, clientes, contratos, estatísticas, painel (`painel_lote`) e alterações no **Neon**.
 - O Java grava só a tabela `usuario`; as tabelas da planilha quem grava é o Python.
 
 **3. Relatório e painel**
 - `PaginaRelatorio.vue` → `uploadStore.js` (relatório de qualidade da planilha conferida).
-- `PaginaDashboard.vue` → `uploadStore.js` → `dashboardService.js` → `api.js` → `GET /api/clientes` e `GET /api/uploads` → `ClienteController.java` / `UploadController.java` → `ConsultaCargaService.java` → lê do **Neon** → gráficos (Chart.js) e insights (`dadosDashboard.js`).
+- `PaginaDashboard.vue` → `uploadStore.js` → `dashboardService.js` → `api.js` → `GET /api/dashboard?segmento=&nivel=` e `GET /api/uploads` → `DashboardController.java` / `UploadController.java` → `ConsultaCargaService.java` → lê do **Neon** o painel que o Python calculou (`painel_lote`).
+- **O navegador não calcula nada do painel:** indicadores, gráficos, tabela de estatísticas e insights chegam prontos do Python; o Vue só desenha (Chart.js). Trocar o filtro só busca outro resultado já calculado.
 
 ---
 
 ## 🚀 Como executar
 
-**Pré-requisitos:** Node.js 18 ou mais novo, e npm.
+**Pré-requisitos:** Node.js 18+, Java 21 (JDK) + Maven, Python 3.11+ e um banco PostgreSQL no [Neon](https://neon.tech).
+
+**1. Configuração (só na primeira vez)**
 
 ```bash
-# 1. Instalar as dependências (dentro da pasta do front)
-cd frontend-vue
-npm install
-
-# 2. Iniciar o sistema
-npm run dev
+cd frontend-vue && npm install                                # front
+cd ../analytics-python && python -m pip install -r requirements.txt   # Python
 ```
 
-Abra **http://localhost:5173** no navegador.
+- Copie `backend-java/.env.example` para `backend-java/.env` e preencha o banco (`DB_URL` no formato `jdbc:postgresql://HOST/neondb?sslmode=require`, `DB_USUARIO`, `DB_SENHA`), a chave do JWT (`JWT_SECRET_BASE64`, 32 bytes em Base64) e a `ETL_CHAVE` (um texto longo qualquer).
+- Copie `analytics-python/.env.example` para `analytics-python/.env`: `DATABASE_URL` (a connection string do Neon) e a **mesma** `ETL_CHAVE`.
+- Os arquivos `.env` têm senha: ficam só no seu computador (o Git ignora).
 
-> ⚠️ Instale sempre de dentro de `frontend-vue`. O comando `npm install --prefix frontend-vue`, rodado na raiz, faz o npm instalar a própria raiz como dependência do front.
+**2. Ligar o sistema** (três terminais, nesta ordem)
 
-**Outros comandos** (dentro de `frontend-vue`):
+```bash
+cd analytics-python && python -m uvicorn api:app --port 8000   # 1) Python  → http://localhost:8000/health
+cd backend-java && mvn spring-boot:run                         # 2) Java    → http://localhost:8080/api/health
+cd frontend-vue && npm run dev                                 # 3) Front   → http://localhost:5173
+```
 
-| Comando | Para quê |
-|---|---|
-| `npm test` | Roda os testes automatizados (Vitest) |
-| `npm run build` | Gera a versão de produção em `dist/` |
-| `npm run planilhas` | Gera de novo as planilhas de modelo e de teste em `public/` |
+Na primeira vez, o Java cria as tabelas no banco e os usuários de demonstração (abaixo). Abra **http://localhost:5173** no navegador.
+
+**Outros comandos**
+
+| Onde | Comando | Para quê |
+|---|---|---|
+| `frontend-vue` | `npm test` | Testes do front (Vitest) |
+| `frontend-vue` | `npm run planilhas` | Gera de novo as planilhas de modelo e de teste em `public/` |
+| `backend-java` | `mvn test` | Testes do back-end (banco H2 temporário, sem Neon nem Python) |
+| `analytics-python` | `python -m unittest -v` | Testes dos cálculos do painel |
 
 ### Usuários de demonstração
 
-A senha de todos é `123456`. Na tela de login, o link **Usar acesso de demonstração** entra com cada um em um clique. Para esconder esse link (quando existir o back-end), configure `VITE_MOSTRAR_DEMO=false`.
+A senha de todos é `123456`. Na tela de login, o link **Usar acesso de demonstração** entra com cada um em um clique. Os usuários são criados pelo back-end na primeira vez que ele liga. Para esconder esse link, configure `VITE_MOSTRAR_DEMO=false` no `frontend-vue/.env`.
 
 | E-mail | Nome | Papel |
 |---|---|---|
@@ -120,7 +130,7 @@ Cada tela tem uma função, para não repetir informação.
 | Tela | Endereço | Para que serve |
 |---|---|---|
 | Página inicial | `/` | Apresentação do sistema |
-| Login | `#/login` | Entrada com e-mail e senha. "Esqueci minha senha" orienta a falar com o administrador; "Não tem acesso? Pedir acesso" leva ao pedido de acesso |
+| Login | `#/login` | Entrada com e-mail e senha. "Esqueci minha senha" avisa o administrador, que define uma senha temporária (trocada no próximo login); "Não tem acesso? Pedir acesso" leva ao pedido de acesso |
 | Pedir acesso | `#/cadastro` | Formulário aberto (nome, e-mail, cargo, senha) que vira um pedido; só entra depois que o administrador aprovar |
 | **Upload** (Passo 1) | `#/upload` | Enviar a planilha, ver o resultado rápido, os clientes aprovados e o histórico de envios (quem enviou, quando e a situação) |
 | **Validação** (Passo 2) | `#/validacao` | Único lugar para ver e corrigir os erros linha a linha, com registro de quem alterou o quê. Também mostra os ajustes automáticos, baixa a planilha corrigida e **libera os clientes aprovados para o painel** |
@@ -130,7 +140,7 @@ Cada tela tem uma função, para não repetir informação.
 
 ### Gráficos do Dashboard
 
-Todos são feitos com Chart.js e acompanham os filtros de segmento e nível:
+Os números de todos os gráficos são **calculados no Python** (`analise.py` e `insights.py`) e chegam prontos pela API; o navegador só desenha, com Chart.js. Todos acompanham os filtros de segmento e nível:
 
 - **Clientes por segmento** (barras);
 - **Clientes por nível A/B/C** (rosca, com o total no centro);
@@ -206,7 +216,7 @@ O sistema lida com dados sensíveis de clientes e faturamento, então o acesso �
 - Usuários são **desativados, nunca apagados**: o histórico precisa continuar apontando para quem enviou cada planilha.
 - O sistema nunca fica sem um administrador ativo, e ninguém desativa a si mesmo.
 
-> Esconder botões no front é só conforto para o usuário. A proteção de verdade será o Spring Boot conferir a permissão em cada rota da API.
+> Esconder botões no front é só conforto para o usuário. A proteção de verdade é o Spring Boot, que confere a permissão em cada rota da API (`ConfiguracaoSeguranca.java`).
 
 ---
 
@@ -222,9 +232,39 @@ Tabelas criadas pelo `backend-java/src/main/resources/schema.sql`:
 | `cliente` | Python | Clientes da planilha (código único; carga nova atualiza) |
 | `contrato` | Python | Serviços contratados por cliente |
 | `estatistica_lote` | Python (`analise.py`) | Quantidade, total, média, mediana e desvio padrão por segmento |
+| `painel_lote` | Python (`analise.py` + `insights.py`) | Painel do Dashboard já calculado, um JSON por filtro (segmento × nível) |
 | `alteracao` | Python | Correções feitas à mão na tela Validação (quem alterou o quê) |
 
 O Java só **lê** as tabelas da planilha (`ConsultaCargaService`) para o painel.
+
+---
+
+## 🔌 Rotas da API (back-end Java)
+
+Todas começam com `http://localhost:8080`. Com login, o front manda o token no cabeçalho `Authorization: Bearer <token>`. O arquivo `backend-java/testes-api.http` tem um roteiro pronto (extensão REST Client do VS Code).
+
+| Método | Endereço | Quem pode | O que faz |
+|---|---|---|---|
+| POST | `/api/auth/login` | todos | `{email, senha}` → `{token, tipo: "Bearer", usuario}` |
+| POST | `/api/auth/cadastro` | todos | Pedido de acesso `{nome, email, cargo?, senha}` → fica PENDENTE |
+| POST | `/api/auth/esqueci-senha` | todos | Avisa o administrador (resposta sempre igual) |
+| POST | `/api/auth/trocar-senha` | logado | Troca a própria senha (obrigatório depois de senha temporária) |
+| GET | `/api/auth/me` | logado | Dados de quem está logado |
+| GET | `/api/health` | todos | `{"status":"ok"}`: o back-end está ligado |
+| GET | `/api/privado` | logado | Rota de teste da aula de JWT |
+| POST | `/api/uploads/validadas` | analista e administrador | Clientes aprovados → o Java valida de novo → o Python calcula e grava |
+| GET | `/api/uploads` | todos os papéis | Cargas gravadas (quem enviou, quem liberou, quantas linhas) |
+| GET | `/api/dashboard?segmento=&nivel=` | todos os papéis | Painel já calculado pelo Python para o filtro |
+| GET | `/api/clientes` | todos os papéis | Clientes da última carga (aula "Telas do Backend") |
+| GET | `/api/clientes/codigos` | analista e administrador | Códigos já cadastrados (para a correção não repetir código) |
+| POST | `/api/clientes/validar` | analista e administrador | Aula "Validação de dados no Backend": DTO + `@Valid`, sem gravar |
+| GET / POST | `/api/admin/usuarios` | administrador | Lista ou cadastra usuários |
+| PUT | `/api/admin/usuarios/{id}` | administrador | Edita nome, e-mail, papel e senha |
+| PATCH | `/api/admin/usuarios/{id}/status` | administrador | Aprova pedido, desativa ou reativa |
+| PATCH | `/api/admin/usuarios/{id}/senha` | administrador | Define senha temporária |
+| DELETE | `/api/admin/usuarios/{id}` | administrador | Recusa um pedido de acesso |
+
+Erros vêm como `{status, mensagem, campos}`: 400 campo inválido, 401 sem login, 403 sem permissão, 409 regra de proteção, 422 planilha sem linha válida ou acima do limite, 502 o Python respondeu com erro, 503 o Python está desligado.
 
 ---
 
@@ -244,10 +284,9 @@ cti_nexus/
 │       ├── utils/         # Regras em funções puras: leitura, validação, estatística
 │       ├── constants/     # Listas fixas: regras, permissões, cores
 │       └── composables/   # Menu lateral recolhível
-├── backend-java/          # API Spring Boot: JWT, usuários, envio da planilha, consultas (chama o Python)
-├── analytics-python/      # FastAPI: limpeza (Pandas), estatísticas e gravação no Neon
-├── database/              # Aponta para o schema.sql oficial do back-end
-└── landing.html           # Página institucional independente
+├── backend-java/          # API Spring Boot (schema.sql do banco em src/main/resources): JWT, usuários, envio da planilha, consultas (chama o Python)
+├── analytics-python/      # FastAPI: pipeline (main.py), limpeza, painel calculado, insights e gravação no Neon
+└── docs/                  # Como continuar em outra máquina e relatórios das atividades
 ```
 
 **Convenções do código:**
@@ -259,11 +298,14 @@ cti_nexus/
 
 ## 🧪 Testes
 
-Os testes são feitos com Vitest (`npm test` dentro de `frontend-vue`) e cobrem:
+Três conjuntos de testes:
+
+- **Python** (`python -m unittest -v` dentro de `analytics-python`): cálculos do painel (média, mediana, desvio padrão amostral, histograma, contratações por mês, filtros e insights).
+- **Java** (`mvn test` dentro de `backend-java`): login, usuários, envio da planilha, validação e a rota do painel (`GET /api/dashboard`).
+- **Front** com Vitest (`npm test` dentro de `frontend-vue`), que cobre:
 
 - leitura da planilha: abas, colunas obrigatórias, CSV com acentos e limites;
 - regras de validação e padronização;
-- estatística: média, mediana, quartis e desvio padrão (com os mesmos resultados do Pandas);
 - as planilhas de modelo e de teste oferecidas na tela;
 - permissões de cada papel;
 - regras do cadastro de usuário;
@@ -273,10 +315,4 @@ Os testes são feitos com Vitest (`npm test` dentro de `frontend-vue`) e cobrem:
 
 ## 🗺️ Próximos passos
 
-1. **Back-end:**
-   - autenticação com Spring Security + JWT e senha com BCrypt;
-   - validação no padrão DTO, Service e Controller.
-2. **Banco** PostgreSQL no Neon, com o modelo acima. Com ele, o "L" do ETL passa a existir: gravar os dados aprovados e o histórico.
-3. **Integração do front com a API**: o axios (`src/services/api.js`) e o Vue Router já estão no projeto; falta trocar o login e o cadastro de demonstração pelas chamadas ao Spring.
-4. **Análise em Python** (Pandas + Matplotlib) a partir dos dados do banco.
-5. **Publicação** na Vercel (front) e na Render (back).
+1. **Publicação** na Vercel (front) e na Render (Java e Python).
