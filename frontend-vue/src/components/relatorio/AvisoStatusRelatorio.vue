@@ -28,7 +28,7 @@
         </p>
       </div>
       <p class="font-display font-bold text-3xl" :class="arquivoValido ? 'text-green-dark' : 'text-orange-dark'">
-        {{ store.percentualValido }}%
+        {{ formatarPercentual(store.percentualValido) }}
         <span class="block text-xs font-sans font-normal text-regular text-right">qualidade</span>
       </p>
     </div>
@@ -52,7 +52,7 @@
 import { computed } from 'vue'
 import { useUploadStore } from '../../stores/uploadStore'
 import { useAutenticacaoStore } from '../../stores/autenticacaoStore'
-import { porcentagem } from '../../utils/formatadores'
+import { porcentagem, formatarPercentual } from '../../utils/formatadores'
 
 const store = useUploadStore()
 const auth = useAutenticacaoStore()

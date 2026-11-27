@@ -111,7 +111,7 @@ const rotas = {
     if (!linhas.length) falhar(400, 'Não há clientes aprovados para enviar.')
     const carga = {
       id: cargas.length + 1, arquivoNome, totalLinhas: linhas.length + descartadas, linhasValidas: linhas.length,
-      linhasInvalidas: descartadas, linhasComAjuste: 0, enviadoPor: { id: logado.id, nome: logado.nome },
+      linhasInvalidas: descartadas, linhasComAjuste: linhas.filter(l => l.ajusteAutomatico).length, enviadoPor: { id: logado.id, nome: logado.nome },
       aprovadoPor: { id: logado.id, nome: logado.nome }, criadoEm: new Date().toISOString()
     }
     cargas.unshift(carga)

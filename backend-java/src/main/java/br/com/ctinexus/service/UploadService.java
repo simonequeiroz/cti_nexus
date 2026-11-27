@@ -50,6 +50,7 @@ public class UploadService {
         // Cada linha do JSON vira uma LinhaPlanilha (número da linha + texto de cada coluna).
         List<LinhaPlanilha> brutas = new ArrayList<>(req.linhas().size());
         Set<Integer> linhasComCodigoEditado = new HashSet<>();
+        Set<Integer> linhasAjustadasNoFront = new HashSet<>(); // Linhas que o front padronizou sozinho (para contar na carga).
         int posicao = 2; // A linha 1 da planilha é o cabeçalho.
         for (LinhaEnvio e : req.linhas()) {
             Map<String, String> campos = new LinkedHashMap<>();
@@ -67,10 +68,11 @@ public class UploadService {
             int numero = e.numeroLinha() == null ? posicao : e.numeroLinha();
             brutas.add(new LinhaPlanilha(numero, campos));
             if (Boolean.TRUE.equals(e.codigoEditado())) linhasComCodigoEditado.add(numero);
+            if (Boolean.TRUE.equals(e.ajusteAutomatico())) linhasAjustadasNoFront.add(numero);
             posicao++;
         }
 
-        return registrar(nome, brutas, descartadas, req, quemLibera, linhasComCodigoEditado);
+        return registrar(nome, brutas, descartadas, req, quemLibera, linhasComCodigoEditado, linhasAjustadasNoFront);
     }
 
     // Código digitado à mão tem que ser novo: se já existe no banco, a gravação substituiria os dados daquele cliente.
@@ -88,7 +90,8 @@ public class UploadService {
 
     // Valida de novo, separa válidas e rejeitadas, manda as válidas ao Python e monta a resposta.
     private UploadResponse registrar(String nome, List<LinhaPlanilha> brutas, int descartadas,
-                                     EnvioValidadasRequest req, Usuario quemLibera, Set<Integer> linhasComCodigoEditado) {
+                                     EnvioValidadasRequest req, Usuario quemLibera, Set<Integer> linhasComCodigoEditado,
+                                     Set<Integer> linhasAjustadasNoFront) {
         List<ResultadoLinha> resultado = validacao.validar(brutas); // VALIDAÇÃO NO BACK-END.
         recusarCodigoJaCadastrado(resultado, linhasComCodigoEditado);
         List<Map<String, String>> validas = new ArrayList<>();
@@ -101,7 +104,8 @@ public class UploadService {
                 rejeitadas.add(new LinhaRejeitada(r.numero(), codigo.isEmpty() ? "(sem código)" : codigo, String.join("; ", r.erros())));
                 continue;
             }
-            if (!r.avisos().isEmpty()) comAjuste++;
+            // Linha com ajuste automático: o Java ainda achou algo para padronizar OU o front avisou que já padronizou.
+            if (!r.avisos().isEmpty() || linhasAjustadasNoFront.contains(r.numero())) comAjuste++;
             validas.add(paraPython(r));
         }
 

@@ -24,6 +24,8 @@ public final class UploadDtos {
     /**
      * Uma linha já conferida pelo front (todos os campos como texto).
      * codigoEditado = o código foi digitado na tela Validação: precisa ser novo, não pode existir no banco.
+     * ajusteAutomatico = o front corrigiu sozinho algum valor desta linha (ex.: "IND." -> "Indústria").
+     *   Precisa vir do front porque a linha já chega padronizada: conferindo de novo, o Java não vê mais o que foi ajustado.
      */
     public record LinhaEnvio(
             Integer numeroLinha,
@@ -38,7 +40,8 @@ public final class UploadDtos {
             String cidade,
             String uf,
             String email,
-            Boolean codigoEditado
+            Boolean codigoEditado,
+            Boolean ajusteAutomatico
     ) {}
 
     /** Uma correção feita à mão na tela Validação: quem, quando, linha, campo, valor antigo e novo. */

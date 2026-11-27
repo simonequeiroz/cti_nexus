@@ -40,6 +40,9 @@
         <td class="px-4 py-3 pr-6 text-right font-mono whitespace-nowrap">{{ formatarMoeda(linha.desvioPadrao, true) }}</td>
       </tr>
     </TabelaDados>
+
+    <!-- Shapiro-Wilk. Some em cargas antigas (antes do teste existir) ou com menos de 3 clientes. -->
+    <ResultadoTeste v-if="normalidade?.pergunta" :resultado="normalidade" />
   </CartaoPainel>
 </template>
 
@@ -49,11 +52,13 @@ import { ref, computed } from 'vue'
 import CartaoPainel from '../ui/CartaoPainel.vue'
 import TabelaDados from '../ui/TabelaDados.vue'
 import GraficoBase from './GraficoBase.vue'
+import ResultadoTeste from './ResultadoTeste.vue'
 import { formatarMoeda } from '../../utils/formatadores'
 import { corDoSegmento, CORES_NIVEL } from '../../constants/cores'
 
 const props = defineProps({
-  resumo: { type: Object, required: true } // { segmento: [...], nivel: [...], total: {...} }, cada grupo com quantidade, media, mediana, desvioPadrao
+  resumo: { type: Object, required: true }, // { segmento: [...], nivel: [...], total: {...} }, cada grupo com quantidade, media, mediana, desvioPadrao
+  normalidade: { type: Object, default: null } // Resultado do Shapiro-Wilk (ver ResultadoTeste.vue) ou null
 })
 
 const OPCOES = [

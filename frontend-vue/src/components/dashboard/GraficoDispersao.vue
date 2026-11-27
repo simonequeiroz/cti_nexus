@@ -15,6 +15,8 @@
         :cor-do-grupo="corDoSegmento"
       />
     </div>
+    <!-- Correlação de Pearson: responde em números a pergunta do gráfico. Some quando o grupo não permite medir. -->
+    <ResultadoTeste v-if="correlacao" :resultado="correlacao" />
   </CartaoPainel>
 </template>
 
@@ -23,11 +25,13 @@
 import { computed } from 'vue'
 import CartaoPainel from '../ui/CartaoPainel.vue'
 import GraficoBase from './GraficoBase.vue'
+import ResultadoTeste from './ResultadoTeste.vue'
 import { formatarMoeda } from '../../utils/formatadores'
 import { corDoSegmento } from '../../constants/cores'
 
 const props = defineProps({
-  pontos: { type: Array, required: true } // [{ rotulo, servicos, faturamento, segmento }]
+  pontos: { type: Array, required: true }, // [{ rotulo, servicos, faturamento, segmento }]
+  correlacao: { type: Object, default: null } // Correlação de Pearson serviços x faturamento, ou null
 })
 
 const dados = computed(() => props.pontos.map(p => ({

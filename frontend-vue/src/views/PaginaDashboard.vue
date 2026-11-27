@@ -71,7 +71,7 @@
 
         <div class="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
           <GraficoSegmento :segmentos="painel.porSegmento" />
-          <GraficoNivel :niveis="painel.porNivel" :total="painel.quantidade" />
+          <GraficoNivel :niveis="painel.porNivel" :total="painel.quantidade" :qui-quadrado="painel.quiQuadrado" />
         </div>
 
         <GraficoContratacoes :meses="painel.contratacoesPorMes" class="mt-6" />
@@ -81,13 +81,17 @@
           <!-- Sem outras conclusões, os dois gráficos ocupam a linha inteira, lado a lado. -->
           <div :class="outrasConclusoes.length ? 'flex flex-col gap-6' : 'lg:col-span-2 grid grid-cols-1 lg:grid-cols-2 gap-6'">
             <GraficoServicos :servicos="painel.servicos" />
-            <GraficoDispersao :pontos="painel.dispersao" />
+            <GraficoDispersao :pontos="painel.dispersao" :correlacao="painel.correlacao" />
           </div>
         </div>
 
-        <GraficoFaturamento :faixas="painel.histograma" class="mt-6" />
+        <!-- Carteira de cada consultor ao lado das faixas de faturamento. Cargas antigas (sem porConsultor): o histograma ocupa a linha toda. -->
+        <div class="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+          <GraficoConsultores v-if="painel.porConsultor?.length" :consultores="painel.porConsultor" />
+          <GraficoFaturamento :faixas="painel.histograma" :class="{ 'lg:col-span-2': !painel.porConsultor?.length }" />
+        </div>
 
-        <ResumoEstatistico :resumo="painel.resumo" class="mt-6" />
+        <ResumoEstatistico :resumo="painel.resumo" :normalidade="painel.normalidade" class="mt-6" />
       </template>
 
       <!-- Fim do fluxo: responde "o que faço agora?" em vez de terminar sem saída. -->
@@ -134,6 +138,7 @@ import GraficoServicos from '../components/dashboard/GraficoServicos.vue'
 import GraficoFaturamento from '../components/dashboard/GraficoFaturamento.vue'
 import GraficoDispersao from '../components/dashboard/GraficoDispersao.vue'
 import ResumoEstatistico from '../components/dashboard/ResumoEstatistico.vue'
+import GraficoConsultores from '../components/dashboard/GraficoConsultores.vue'
 import ListaInsights from '../components/dashboard/ListaInsights.vue'
 import DestaquesInsights from '../components/dashboard/DestaquesInsights.vue'
 import BotaoBase from '../components/ui/BotaoBase.vue'

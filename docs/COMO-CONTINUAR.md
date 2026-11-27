@@ -219,7 +219,7 @@ cd frontend-vue ; npm test      # 84 testes do front (usa services/apiFalsa.js, 
 ## 8. Próximos passos
 
 1. ~~Planilha no back-end~~ ✅ (29/10). ~~Validação com DTO, `@Valid` e `POST /api/clientes/validar`~~ ✅ (05/11).
-2. Gráficos analíticos em Python (Matplotlib, `graficos.py`): removidos a pedido da professora (19/11); os gráficos ficam no Dashboard, em Chart.js. ~~Painel calculado no Python~~ ✅ (19/11: `analise.py` + `insights.py` → `painel_lote` → `GET /api/dashboard`). Falta o **teste estatístico** (Shapiro-Wilk ou Qui-quadrado).
+2. Gráficos analíticos em Python (Matplotlib, `graficos.py`): removidos a pedido da professora (19/11); os gráficos ficam no Dashboard, em Chart.js. ~~Painel calculado no Python~~ ✅ (19/11: `analise.py` + `insights.py` → `painel_lote` → `GET /api/dashboard`). ~~Teste estatístico~~ ✅ (26/11: Shapiro-Wilk no `analise.py`, função `teste_normalidade`; aparece embaixo de "Estatísticas do faturamento" no Dashboard). ~~Qui-quadrado e correlação~~ ✅ (26/11: `teste_qui_quadrado` segmento × nível, embaixo de "Clientes por nível"; `correlacao_servicos_faturamento`, Pearson, embaixo do gráfico de dispersão).
 3. **Publicar:** back-end no **Render** e front na **Vercel**.
    - No Render, defina as mesmas variáveis do `.env`, mais `ADMIN_SENHA` forte e `CORS_ORIGENS` com o endereço da Vercel.
    - O Python também vai para o Render, como outro serviço. O `ETL_URL` do back-end passa a ser o endereço dele + `/etl`.

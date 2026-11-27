@@ -1,7 +1,8 @@
 <!-- Distribuição dos clientes por nível A, B e C em rosca (partes de um todo), com o total no miolo e legenda com %. -->
 <template>
   <CartaoPainel titulo="Clientes por nível" descricao="Proporção da carteira em cada nível. Tom mais escuro = nível mais alto.">
-    <div class="p-6 grid grid-cols-1 sm:grid-cols-[1fr_auto] items-center gap-6">
+    <!-- minmax(0, 1fr): a rosca pode encolher. Com "1fr" sozinho, o desenho (canvas) não diminuía e empurrava a legenda para fora do quadro. -->
+    <div class="p-6 grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_auto] items-center gap-6">
       <div class="relative">
         <GraficoBase
           tipo="rosca"
@@ -29,6 +30,8 @@
         </li>
       </ul>
     </div>
+    <!-- Qui-quadrado segmento x nível. Some com o filtro de um segmento só (não há segmentos para comparar). -->
+    <ResultadoTeste v-if="quiQuadrado" :resultado="quiQuadrado" />
   </CartaoPainel>
 </template>
 
@@ -37,11 +40,13 @@
 import { computed } from 'vue'
 import CartaoPainel from '../ui/CartaoPainel.vue'
 import GraficoBase from './GraficoBase.vue'
+import ResultadoTeste from './ResultadoTeste.vue'
 import { CORES_NIVEL } from '../../constants/cores'
 
 const props = defineProps({
   niveis: { type: Array, required: true }, // [{ nivel, quantidade, percentual }]
-  total: { type: Number, required: true }
+  total: { type: Number, required: true },
+  quiQuadrado: { type: Object, default: null } // Qui-quadrado segmento x nível, ou null
 })
 
 const dados = computed(() => props.niveis.map(n => ({

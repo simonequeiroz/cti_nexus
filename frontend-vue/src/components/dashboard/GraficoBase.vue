@@ -14,7 +14,7 @@
       <tbody>
         <tr v-for="(item, indice) in dados" :key="indice">
           <th scope="row">{{ tipo === 'dispersao' ? `${item.rotulo}${item.grupo ? ` — ${item.grupo}` : ''} (${formatarX(item.x)})` : item.rotulo }}</th>
-          <td>{{ formatarValor(tipo === 'dispersao' ? item.y : item.valor) }}</td>
+          <td>{{ formatarValor(tipo === 'dispersao' ? item.y : item.valor, indice) }}</td>
         </tr>
       </tbody>
     </table>
@@ -33,7 +33,7 @@ const props = defineProps({
   descricao: { type: String, required: true }, // Texto lido pelos leitores de tela.
   tituloX: { type: String, default: '' },
   tituloY: { type: String, default: '' },
-  formatarValor: { type: Function, default: valor => Number(valor).toLocaleString('pt-BR') }, // Tooltip e tabela.
+  formatarValor: { type: Function, default: valor => Number(valor).toLocaleString('pt-BR') }, // Tooltip e tabela. Recebe (valor, posição do item).
   formatarEixo: { type: Function, default: valor => Number(valor).toLocaleString('pt-BR') }, // Números do eixo de valores.
   formatarX: { type: Function, default: valor => Number(valor).toLocaleString('pt-BR') },
   altura: { type: String, default: '18rem' },
@@ -133,7 +133,8 @@ function montarConfiguracao() {
       return `${item.rotulo}${item.grupo ? ` (${item.grupo})` : ''}: ${formatarX(item.x)} · ${formatarValor(item.y)}`
     }
     if (rosca) return `${nomeSerie}: ${formatarValor(contexto.parsed)}`
-    return `${nomeSerie}: ${formatarValor(horizontal ? contexto.parsed.x : contexto.parsed.y)}`
+    // O 2º valor (posição da barra) deixa a dica mostrar outros dados do mesmo item (ex.: faturamento do consultor).
+    return `${nomeSerie}: ${formatarValor(horizontal ? contexto.parsed.x : contexto.parsed.y, contexto.dataIndex)}`
   }
 
   const eixoCategoria = { grade: dispersao, formatar: dispersao ? formatarX : undefined, inteiro: dispersao }

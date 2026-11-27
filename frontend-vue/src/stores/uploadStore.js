@@ -355,6 +355,7 @@ export const useUploadStore = defineStore('upload', () => {
   function montarEnvio() {
     const comErro = new Set(dadosInvalidos.value.map(item => item.numeroLinha))
     const editadas = linhasComCodigoEditado()
+    const ajustadas = new Set(padronizacoes.value.map(item => item.linha)) // Linhas com algum ajuste automático.
     const linhaDoCodigo = new Map() // Código -> linha aprovada com esse código.
     dadosBrutos.value.forEach((linha, indice) => {
       const codigo = normalizarCodigo(linha.codigo_cliente)
@@ -368,6 +369,8 @@ export const useUploadStore = defineStore('upload', () => {
       linhas: dadosValidos.value.map(cliente => ({
         numeroLinha: linhaDoCodigo.get(cliente.codigo_cliente) ?? null,
         codigoEditado: editadas.has(linhaDoCodigo.get(cliente.codigo_cliente)), // O servidor confere no banco se o código digitado é novo.
+        // A linha vai já padronizada, então o servidor não vê mais o ajuste: avisamos aqui para ele contar na carga.
+        ajusteAutomatico: ajustadas.has(linhaDoCodigo.get(cliente.codigo_cliente)),
         codigoCliente: cliente.codigo_cliente,
         nomeCliente: cliente.nome_cliente,
         consultor: cliente.consultor,

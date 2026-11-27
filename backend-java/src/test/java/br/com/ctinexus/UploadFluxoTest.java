@@ -55,7 +55,8 @@ class UploadFluxoTest {
               "linhas": [
                 { "numeroLinha": 2, "codigoCliente": "CTI001", "nomeCliente": "Metalúrgica Alfa", "consultor": "Ana Souza",
                   "segmento": "Indústria", "nivelCliente": "A", "faturamentoAnual": "1850000", "servicosContratados": "MPLS;Firewall",
-                  "dataContratacao": "05/03/2024", "cidade": "Campinas", "uf": "SP", "email": "" },
+                  "dataContratacao": "05/03/2024", "cidade": "Campinas", "uf": "SP", "email": "",
+                  "ajusteAutomatico": true },
                 { "numeroLinha": 3, "codigoCliente": "CTI002", "nomeCliente": "Clínica Vida", "consultor": "Carlos Lima",
                   "segmento": "saude", "nivelCliente": "b", "faturamentoAnual": "98000.5", "servicosContratados": "Link Dedicado",
                   "dataContratacao": "10/01/2023", "cidade": "", "uf": "", "email": "contato@vida.com.br" },
@@ -90,7 +91,7 @@ class UploadFluxoTest {
                 .andExpect(jsonPath("$.totalLinhas").value(13))                    // 3 enviadas + 10 que o front já descartou.
                 .andExpect(jsonPath("$.linhasValidas").value(2))
                 .andExpect(jsonPath("$.linhasInvalidas").value(11))
-                .andExpect(jsonPath("$.linhasComAjuste").value(1))                 // "saude" virou "Saúde".
+                .andExpect(jsonPath("$.linhasComAjuste").value(2))                 // Linha 2: o front avisou que ajustou. Linha 3: "saude" virou "Saúde" aqui.
                 .andExpect(jsonPath("$.rejeitadas[0].linha").value(4))
                 .andExpect(jsonPath("$.rejeitadas[0].codigo").value("CTI003"));
 

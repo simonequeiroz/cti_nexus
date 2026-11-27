@@ -1,9 +1,19 @@
 // Funções de formatação usadas pelas telas.
 
-export function formatarTamanho(bytes) { // Ex.: 20966 vira "20.5 KB".
+// Número com 1 casa decimal no formato brasileiro (vírgula). Ex.: 33.333 vira "33,3".
+// O toFixed(1) usa ponto ("33.3"), por isso não serve para mostrar na tela.
+function umaCasa(numero) {
+  return Number(numero).toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })
+}
+
+export function formatarTamanho(bytes) { // Ex.: 20966 vira "20,5 KB".
   if (bytes < 1024) return `${bytes} B`
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+  if (bytes < 1024 * 1024) return `${umaCasa(bytes / 1024)} KB`
+  return `${umaCasa(bytes / (1024 * 1024))} MB`
+}
+
+export function formatarPercentual(valor) { // Ex.: "33.3" (do percentualValido) vira "33,3%".
+  return `${umaCasa(valor)}%`
 }
 
 export function formatarData(data) { // Ex.: 24/09/2026, 22:06:10.

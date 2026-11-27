@@ -54,11 +54,11 @@
         class="mt-6 rounded-2xl border border-white/10 bg-white/5 backdrop-blur-sm"
         :class="recolhida ? 'p-2 text-center' : 'p-4'"
         aria-label="Qualidade do dado"
-        :title="recolhida ? `Qualidade: ${store.percentualValido}% (${store.quantidadeValidas} de ${store.quantidadeLinhas} linhas)` : undefined"
+        :title="recolhida ? `Qualidade: ${formatarPercentual(store.percentualValido)} (${store.quantidadeValidas} de ${store.quantidadeLinhas} linhas)` : undefined"
       >
         <div v-if="!recolhida" class="flex items-baseline justify-between">
           <p class="text-xs font-mono uppercase tracking-widest text-white/50">Qualidade</p>
-          <p class="font-display font-bold text-2xl">{{ store.percentualValido }}%</p>
+          <p class="font-display font-bold text-2xl">{{ formatarPercentual(store.percentualValido) }}</p>
         </div>
         <p v-else class="font-display font-bold text-sm">{{ Math.round(store.percentualValido) }}%</p>
 
@@ -136,6 +136,7 @@ import { useUsuariosStore } from '../../stores/usuariosStore'
 import { useRoute, useRouter } from 'vue-router'
 import { useMenuLateral } from '../../composables/useMenuLateral'
 import { PERMISSAO_DA_TELA } from '../../constants/permissoes'
+import { formatarPercentual } from '../../utils/formatadores' // "33.3" -> "33,3%" (a barra usa o número com ponto, que é o que o CSS entende)
 
 const auth = useAutenticacaoStore()
 const store = useUploadStore()
@@ -177,7 +178,7 @@ const etapas = computed(() => {
     icone: 'relatorio',
     link: '/relatorio',
     estado: temDados.value ? 'concluida' : 'pendente',
-    detalhe: temDados.value ? `${store.percentualValido}% de qualidade` : 'aguardando planilha'
+    detalhe: temDados.value ? `${formatarPercentual(store.percentualValido)} de qualidade` : 'aguardando planilha'
   }
 
   const liberados = store.quantidadeLiberados

@@ -28,7 +28,7 @@
         <td class="px-4 py-2.5 text-right font-mono">{{ registro.totalLinhas }}</td>
         <td class="px-4 py-2.5 text-right font-mono text-green">{{ registro.validas }}</td>
         <td class="px-4 py-2.5 text-right font-mono" :class="{ 'text-orange': registro.invalidas }">{{ registro.invalidas }}</td>
-        <td class="px-4 py-2.5 text-right font-mono">{{ registro.percentualValido }}%</td>
+        <td class="px-4 py-2.5 text-right font-mono">{{ formatarPercentual(registro.percentualValido) }}</td>
         <td class="px-4 py-2.5">
           <EtiquetaBase :cor="corDoStatus(registro.status)">{{ registro.status }}</EtiquetaBase>
           <span v-if="registro.liberadoPor" class="block mt-1 text-xs text-green-dark whitespace-nowrap">liberada por {{ registro.liberadoPor.nome }}</span>
@@ -57,7 +57,7 @@ import MensagemVazia from '../ui/MensagemVazia.vue'
 import { useUploadStore } from '../../stores/uploadStore'
 import { useAutenticacaoStore } from '../../stores/autenticacaoStore'
 import { corDoStatus } from '../../constants/validacao'
-import { formatarData, formatarTamanho, formatarDuracao, dataISO } from '../../utils/formatadores'
+import { formatarData, formatarTamanho, formatarDuracao, formatarPercentual, dataISO } from '../../utils/formatadores'
 
 const COLUNAS = [
   { rotulo: 'Data' },
