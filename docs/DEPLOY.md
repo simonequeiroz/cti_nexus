@@ -7,33 +7,65 @@ No fim há um resumo dos conceitos de DevOps para a apresentação (10/12).
 
 ## 1. O mapa: o que vai para onde
 
-```
-                       NAVEGADOR (qualquer computador)
-                                  │
-                                  ▼
-   ┌──────────────────────────────────────────────┐
-   │  FRONT  — Vercel                             │  site estático (HTML, JS, CSS) gerado pelo "npm run build"
-   │  https://cti-nexus.vercel.app                │
-   └──────────────────────────────────────────────┘
-                                  │  axios → VITE_API_URL
-                                  ▼
-   ┌──────────────────────────────────────────────┐
-   │  BACK-END Java — Render (Docker)             │  login, regras, confere a planilha de novo
-   │  https://cti-nexus-api.onrender.com/api      │
-   └──────────────────────────────────────────────┘
-           │ grava/lê usuario      │ POST /etl com X-ETL-Key (ETL_URL + ETL_CHAVE)
-           │                       ▼
-           │   ┌──────────────────────────────────┐
-           │   │  PYTHON — Render                 │  limpeza, estatística, painel
-           │   │  https://cti-nexus-etl.onrender.com │
-           │   └──────────────────────────────────┘
-           ▼                       ▼
-   ┌──────────────────────────────────────────────┐
-   │  BANCO — Neon (PostgreSQL)  — JÁ ESTÁ NA NUVEM │  nada a fazer: é o mesmo banco usado no PC
-   └──────────────────────────────────────────────┘
+Dois diagramas: **como o sistema funciona na nuvem** (1.1) e **como o código chega lá** (1.2).
+O GitHub mostra os dois desenhados; no VS Code, use a visualização do Markdown com uma extensão de Mermaid.
+
+### 1.1 O sistema funcionando (quem fala com quem)
+
+```mermaid
+flowchart TB
+    user(["Navegador do usuário<br/>analista · gestor · administrador"])
+
+    subgraph vercel["Vercel"]
+        front["Front Vue 3<br/>site estático (HTML, JS, CSS)"]
+    end
+
+    subgraph render["Render · plano Free"]
+        api["Back-end Java 21 · Spring Boot<br/>contêiner Docker<br/>health: /api/health"]
+        etl["Python · FastAPI<br/>health: /health"]
+    end
+
+    subgraph neon["Neon · São Paulo"]
+        db[("PostgreSQL")]
+    end
+
+    user -->|"1 · baixa o site"| front
+    user -->|"2 · chamadas da API + token JWT<br/>(VITE_API_URL · liberado pelo CORS_ORIGENS)"| api
+    api -->|"3 · POST /etl + X-ETL-Key<br/>(ETL_URL · ETL_CHAVE)"| etl
+    api -->|"usuários · leitura do painel<br/>(DB_URL · DB_USUARIO · DB_SENHA)"| db
+    etl -->|"grava clientes, estatísticas e painel<br/>(DATABASE_URL)"| db
+
+    classDef servico fill:#eef4fb,stroke:#0070c0,color:#1a1a1a
+    classDef pessoa fill:#fff7e6,stroke:#c07000,color:#1a1a1a
+    class front,api,etl,db servico
+    class user pessoa
 ```
 
-Os endereços acima são exemplos: cada plataforma dá o seu na hora de criar.
+**Como ler:**
+- A Vercel só entrega os arquivos do site (seta 1). Depois, quem chama o Java é o **navegador** (seta 2), não a Vercel.
+  Por isso o Java precisa autorizar o endereço da Vercel no **CORS**: o pedido vem de uma página de outro endereço.
+- **O banco só é acessado pelos servidores** (Java e Python). O navegador nunca fala com o Neon: a senha do banco não sai do Render.
+- Entre parênteses estão as **variáveis de ambiente** que ligam uma peça à outra.
+
+### 1.2 Entrega contínua (como o código chega na nuvem)
+
+```mermaid
+flowchart LR
+    dev["PC da Simone<br/>commit + push"] --> gh["GitHub<br/>branch main"]
+    gh -->|"npm run build → pasta dist"| front["Vercel<br/>front"]
+    gh -->|"monta o Dockerfile → .jar"| api["Render<br/>back-end Java"]
+    gh -->|"pip install -r requirements.txt"| etl["Render<br/>Python"]
+
+    classDef servico fill:#eef4fb,stroke:#0070c0,color:#1a1a1a
+    classDef pessoa fill:#fff7e6,stroke:#c07000,color:#1a1a1a
+    class front,api,etl servico
+    class dev pessoa
+```
+
+Cada `git push` na `main` faz a Vercel e o Render baixarem o código, montarem (build) e publicarem a versão nova sozinhos.
+Nos textos das setas está o que cada plataforma faz no build.
+
+Os endereços dos serviços (ex.: `cti-nexus-api.onrender.com`) são escolhidos na hora de criar: cada plataforma dá o seu.
 
 **Por que essa ordem de deploy?** Cada peça precisa do endereço da seguinte:
 1. **Python** primeiro → ganha um endereço.
