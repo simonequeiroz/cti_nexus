@@ -1,0 +1,5 @@
+# O que NÃO entra na caixa (contêiner) ao montar o Dockerfile.
+# .env: tem senhas. No Render, as senhas ficam nas variáveis de ambiente do painel, nunca dentro da imagem.
+.env
+# target: é refeito dentro da caixa (etapa de compilação).
+target/
